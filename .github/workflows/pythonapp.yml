@@ -16,6 +16,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+    - name: Run setup
+      run: |
+        bash bin/setup
     - name: Run build checks
       run: |
         bash bin/build
