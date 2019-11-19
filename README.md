@@ -19,7 +19,6 @@ To get started:
 - Clear the local ./venv folder if it's present (the virtual environment)
 - Create and start a new virtual environment in ./venv
 - Download the required modules and install these to the virtual environment
-- Start the app
 
 ## Making your changes
 Once you have setup the project, you can begin working on your changes, you shouldn't have to set this up again unless something goes very wrong.

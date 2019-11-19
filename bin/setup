@@ -56,9 +56,6 @@ execute_step(["sh", "./venv/bin/activate"], "Couldn't start virtual env")
 print("-\t[Downloading modules]")
 execute_step(["./venv/bin/pip3", "install", "-r", "requirements.txt"], "Couldn't download modules")
 
-print("-\t[Starting app]")
-execute_step(["venv/bin/python3", "./go.py"], "Couldn't start app")
-
 print("---\tReady to go! Start with bin/start from now on")
 print(
 '''
