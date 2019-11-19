@@ -35,7 +35,7 @@ parso==0.5.1
 pdoc3==0.7.1
 plotly==4.1.1
 pluggy==0.13.0
-protobuf==3.7.1
+protobuf==3.10.0
 py2app==0.19
 pycodestyle==2.5.0
 pydocstyle==4.0.1
