@@ -42,14 +42,14 @@ print("-\t[Checking location]")
 execute_step(["ls", "app"], "Location check failed")
 
 print("-\t[Checking lint, and applying formatting rules]")
-execute_step(["yapf", "-i", "-r", "app/", "--exclude=app/lib/*"], "Yapf lint failed")
+execute_step(["venv/bin/yapf", "-i", "-r", "app/", "--exclude=app/lib/*"], "Yapf lint failed")
 
 print("-\t[Checking code using flake8]")
-execute_step(["flake8", "app/", "--exclude=app/lib/*"], "Flake 8 check failed")
+execute_step(["venv/bin/flake8", "app/", "--exclude=app/lib/*"], "Flake 8 check failed")
 
 
 print("-\t[Creating documentation]")
-execute_step(["pdoc3", "-o docs", "--html", "app", "--force"], "Pdoc generator failed")
+execute_step(["venv/bin/pdoc3", "-o docs", "--html", "app", "--force"], "Pdoc generator failed")
 print(
 '''
 ===================================================================
