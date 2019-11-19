@@ -18,7 +18,7 @@ jobs:
         python -m pip install --upgrade pip
     - name: Run setup
       run: |
-        bash bin/setup
+        python bin/setup
     - name: Run build checks
       run: |
-        bash bin/build
+        python bin/build
