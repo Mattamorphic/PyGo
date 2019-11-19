@@ -1,0 +1,74 @@
+#!/usr/local/bin/python3
+
+'''
+    A script to setup the project
+
+    Author: Matt Barber <mfmbarber@gmail.com>
+'''
+
+from utils import execute_step
+
+print('''
+                                                                 ,-,
+                                                             _.-=;~ /_
+                                                          _-~   '     ;.
+                                                      _.-~     '   .-~-~`-._
+                                                _.--~~:.             --.____88
+                              ____.........--~~~. .' .  .        _..-------~~
+                     _..--~~~~               .' .'             ,'
+                 _.-~                        .       .     ` ,'
+               .'                                    :.    ./
+             .:     ,/          `                   ::.   ,'
+           .:'     ,(            ;.                ::. ,-'
+          .'     ./'.`.     . . /:::._______.... _/:.o/
+         /     ./'. . .)  . _.,'               `88;?88|
+       ,'  . .,/'._,-~ /_.o8P'                  88P ?8b
+    _,'' . .,/',-~    d888P'                    88'  88|
+ _.'~  . .,:oP'        ?88b              _..--- 88.--'8b.--..__
+:     ...' 88o __,------.88o ...__..._.=~- .    `~~   `~~      ~-.
+`.;;;:='    ~~            ~~~                ~-    -       -   -
+===================================================================
+.d88888b             dP
+88.    "'            88
+`Y88888b. .d8888b. d8888P dP    dP 88d888b.
+      `8b 88ooood8   88   88    88 88'  `88
+d8'   .8P 88.  ...   88   88.  .88 88.  .88
+ Y88888P  `88888P'   dP   `88888P' 88Y888P'
+                                   88
+                                   dP
+===================================================================
+''')
+print("-\t[Checking location]")
+execute_step(["ls", "app"], "Location check failed")
+
+try:
+  print("-\t[Deactivating venv]")
+  execute_step(["deactivate"], "Couldn't deactivate")
+except:
+  pass
+
+print("-\t[Clear and update venv]")
+execute_step(["python3", "-m", "venv", "./venv", "--clear"], "Couldn't rebuild venv")
+
+print("-\t[Starting our venv]")
+execute_step(["sh", "./venv/bin/activate"], "Couldn't start virtual env")
+
+print("-\t[Downloading modules]")
+execute_step(["./venv/bin/pip3", "install", "-r", "requirements.txt"], "Couldn't download modules")
+
+print("-\t[Starting app]")
+execute_step(["venv/bin/python3", "./go.py"], "Couldn't start app")
+
+print("---\tReady to go! Start with bin/start from now on")
+print(
+'''
+===================================================================
+888888ba
+88    `8b
+88     88 .d8888b. 88d888b. .d8888b.
+88     88 88'  `88 88'  `88 88ooood8
+88    .8P 88.  .88 88    88 88.  ...
+8888888P  `88888P' dP    dP `88888P'
+===================================================================
+'''
+)

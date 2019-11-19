@@ -1,0 +1,64 @@
+#!/usr/local/bin/python3
+
+'''
+    A script to simplify the build process pre-commit
+
+    Author: Matt Barber <mfmbarber@gmail.com>
+'''
+from utils import execute_step
+
+print('''
+                                                                 ,-,
+                                                             _.-=;~ /_
+                                                          _-~   '     ;.
+                                                      _.-~     '   .-~-~`-._
+                                                _.--~~:.             --.____88
+                              ____.........--~~~. .' .  .        _..-------~~
+                     _..--~~~~               .' .'             ,'
+                 _.-~                        .       .     ` ,'
+               .'                                    :.    ./
+             .:     ,/          `                   ::.   ,'
+           .:'     ,(            ;.                ::. ,-'
+          .'     ./'.`.     . . /:::._______.... _/:.o/
+         /     ./'. . .)  . _.,'               `88;?88|
+       ,'  . .,/'._,-~ /_.o8P'                  88P ?8b
+    _,'' . .,/',-~    d888P'                    88'  88|
+ _.'~  . .,:oP'        ?88b              _..--- 88.--'8b.--..__
+:     ...' 88o __,------.88o ...__..._.=~- .    `~~   `~~      ~-.
+`.;;;:='    ~~            ~~~                ~-    -       -   -
+===================================================================
+ 888888ba           oo dP       dP oo
+ 88    `8b             88       88
+a88aaaa8P' dP    dP dP 88 .d888b88 dP 88d888b. .d8888b.
+ 88   `8b. 88    88 88 88 88'  `88 88 88'  `88 88'  `88
+ 88    .88 88.  .88 88 88 88.  .88 88 88    88 88.  .88
+ 88888888P `88888P' dP dP `88888P8 dP dP    dP `8888P88
+                                                    .88
+                                                d8888P
+===================================================================
+''')
+
+print("-\t[Checking location]")
+execute_step(["ls", "app"], "Location check failed")
+
+print("-\t[Checking lint, and applying formatting rules]")
+execute_step(["yapf", "-i", "-r", "app/", "--exclude=app/lib/*"], "Yapf lint failed")
+
+print("-\t[Checking code using flake8]")
+execute_step(["flake8", "app/", "--exclude=app/lib/*"], "Flake 8 check failed")
+
+
+print("-\t[Creating documentation]")
+execute_step(["pdoc3", "-o docs", "--html", "app", "--force"], "Pdoc generator failed")
+print(
+'''
+===================================================================
+888888ba
+88    `8b
+88     88 .d8888b. 88d888b. .d8888b.
+88     88 88'  `88 88'  `88 88ooood8
+88    .8P 88.  .88 88    88 88.  ...
+8888888P  `88888P' dP    dP `88888P'
+===================================================================
+'''
+)

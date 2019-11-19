@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.1" />
+<title>app.board API documentation</title>
+<meta name="description" content="Represents the board" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>app.board</code></h1>
+</header>
+<section id="section-intro">
+<p>Represents the board</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#39;&#39;&#39;
+    Represents the board
+&#39;&#39;&#39;
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtCore import QBasicTimer, pyqtSignal, QPoint
+# from PyQt5.QtGui import QPainter # TODO Uncomment when we instantiate
+# from .piece import Piece # TODO Uncomment when we start using this
+
+
+class Board(QFrame):  # base the board on a QFrame widget
+    updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
+    clickLocationSignal = pyqtSignal(
+        str)  # signal sent when there is a new click location
+
+    # TODO set the board width and height to be square
+    boardWidth = 0  # TODO this needs updating - board is 0 squares wide
+    boardHeight = 0  #
+    timerSpeed = 1  # the timer updates ever 1 second
+    counter = 10  # the number the counter will count down from
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.initBoard()
+
+    def initBoard(self):
+        &#39;&#39;&#39;
+            Initiates the board
+        &#39;&#39;&#39;
+        self.timer = QBasicTimer()  # create a timer for the game
+        self.isStarted = False  # game is not currently started
+        self.start()  # start the game which will start the timer
+
+        # TODO - create a 2d int/Piece array to store the state of the game
+        self.boardArray = []
+
+        # TODO - uncomment this method after create the array above
+        # self.printBoardArray()
+
+    def printBoardArray(self):
+        &#39;&#39;&#39;
+            Pretty prints the boardArray to the terminal
+        &#39;&#39;&#39;
+        print(&#34;boardArray:&#34;)
+        print(&#39;\n&#39;.join([
+            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
+        ]))
+
+    def mousePosToColRow(self, event):
+        &#39;&#39;&#39;
+            Convert the mouse click event to a row and column
+
+            Args:
+                event (Event): The mouse click event
+        &#39;&#39;&#39;
+        pass  # pass means ignore the code block - supresses errors
+
+    def squareWidth(self):
+        &#39;&#39;&#39;
+            Returns the width of one square in the board
+
+            Returns:
+                float
+        &#39;&#39;&#39;
+        return self.contentsRect().width() / self.boardWidth
+
+    def squareHeight(self):
+        &#39;&#39;&#39;
+            Returns the height of one square of the board
+
+            Returns:
+                float
+        &#39;&#39;&#39;
+        return self.contentsRect().height() / self.boardHeight
+
+    def start(self):
+        &#39;&#39;&#39;
+            Start the game
+        &#39;&#39;&#39;
+        self.isStarted = True  # determines if the game has started to TRUE
+        self.resetGame()  # reset the game
+        self.timer.start(self.timerSpeed,
+                         self)  # start the timer with the correct speed
+        print(&#34;start () - timer is started&#34;)
+
+    def timerEvent(self, event):
+        &#39;&#39;&#39;
+            This event is automatically called when the timer is updated.
+            Based on the timerSpeed variable.
+
+            Args:
+                event (Event): Timer event
+        &#39;&#39;&#39;
+        # TODO adapter this code to handle your timers
+        # if the timer that has &#39;ticked&#39; is the one in this class
+        if event.timerId() == self.timer.timerId():
+            if Board.counter == 0:
+                print(&#34;Game over&#34;)
+            self.counter -= 1
+            print(&#39;timerEvent()&#39;, self.counter)
+            self.updateTimerSignal.emit(self.counter)
+        else:
+            # if we do not handle an event pass it to the parent class
+            super(Board, self).timerEvent(event)
+
+    def paintEvent(self, event):
+        &#39;&#39;&#39;
+            Paints the board and the pieces of the game
+
+            Args:
+                event (Event): The paint event
+        &#39;&#39;&#39;
+        # painter = QPainter(self)
+        # self.drawBoardSquares(painter)
+        # self.drawPieces(painter)
+        pass
+
+    def mousePressEvent(self, event):
+        &#39;&#39;&#39;
+            Mouse press event handler
+
+            Args:
+                event (Event): The mouse press event
+        &#39;&#39;&#39;
+        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
+            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
+        print(&#34;mousePressEvent() - &#34; + clickLoc)
+        # TODO you could call some game logic here
+        self.clickLocationSignal.emit(clickLoc)
+
+    def resetGame(self):
+        &#39;&#39;&#39;
+            Clears pieces from the board&#39;
+        &#39;&#39;&#39;
+        # TODO write code to reset game
+        pass
+
+    def tryMove(self, newX, newY):
+        &#39;&#39;&#39;
+            Tries to move a piece
+
+            Args:
+                newX (Int): X axis position
+                newY (Int): Y axis position
+        &#39;&#39;&#39;
+        pass
+
+    def drawBoardSquares(self, painter):
+        &#39;&#39;&#39;
+            Draw all the square on the board
+
+            Args:
+                painter (QPainter): The painter to paint on the widget with
+        &#39;&#39;&#39;
+        # TODO set the default colour of the brush
+        for row in range(0, Board.boardHeight):
+            for col in range(0, Board.boardWidth):
+                painter.save()
+                # TODO set value equal the transformation
+                #   in the column direction
+                colTransformation = self.squareWidth() * col
+                # TODO set this value equal the transformation
+                #   in the row direction
+                rowTransformation = 0
+                painter.translate(colTransformation, rowTransformation)
+                painter.fillRect()  # TODO provide the required arguments
+                painter.restore()
+                # TODO change the colour of the brush so a checkered board is
+                # drawn - alternating on each iteration
+
+    def drawPieces(self, painter):
+        &#39;&#39;&#39;
+            Draw the prices on the board
+
+            Args:
+                painter (QPainter): The painter to paint with
+        &#39;&#39;&#39;
+        # empty square could be modeled with transparent pieces
+        # colour = Qt.transparent
+        for row in range(0, len(self.boardArray)):
+            for col in range(0, len(self.boardArray[0])):
+                painter.save()
+                painter.translate()
+
+                # TODO draw some the pieces as ellipses
+                # TODO choose colour &amp; set the painter brush to correct colour
+                radius = (self.squareWidth() - 2) / 2
+                center = QPoint(radius, radius)
+                painter.drawEllipse(center, radius, radius)
+                painter.restore()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="app.board.Board"><code class="flex name class">
+<span>class <span class="ident">Board</span></span>
+<span>(</span><span>parent)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>QFrame(parent: QWidget = None, flags: Union[Qt.WindowFlags, Qt.WindowType] = Qt.WindowFlags())</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Board(QFrame):  # base the board on a QFrame widget
+    updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
+    clickLocationSignal = pyqtSignal(
+        str)  # signal sent when there is a new click location
+
+    # TODO set the board width and height to be square
+    boardWidth = 0  # TODO this needs updating - board is 0 squares wide
+    boardHeight = 0  #
+    timerSpeed = 1  # the timer updates ever 1 second
+    counter = 10  # the number the counter will count down from
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.initBoard()
+
+    def initBoard(self):
+        &#39;&#39;&#39;
+            Initiates the board
+        &#39;&#39;&#39;
+        self.timer = QBasicTimer()  # create a timer for the game
+        self.isStarted = False  # game is not currently started
+        self.start()  # start the game which will start the timer
+
+        # TODO - create a 2d int/Piece array to store the state of the game
+        self.boardArray = []
+
+        # TODO - uncomment this method after create the array above
+        # self.printBoardArray()
+
+    def printBoardArray(self):
+        &#39;&#39;&#39;
+            Pretty prints the boardArray to the terminal
+        &#39;&#39;&#39;
+        print(&#34;boardArray:&#34;)
+        print(&#39;\n&#39;.join([
+            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
+        ]))
+
+    def mousePosToColRow(self, event):
+        &#39;&#39;&#39;
+            Convert the mouse click event to a row and column
+
+            Args:
+                event (Event): The mouse click event
+        &#39;&#39;&#39;
+        pass  # pass means ignore the code block - supresses errors
+
+    def squareWidth(self):
+        &#39;&#39;&#39;
+            Returns the width of one square in the board
+
+            Returns:
+                float
+        &#39;&#39;&#39;
+        return self.contentsRect().width() / self.boardWidth
+
+    def squareHeight(self):
+        &#39;&#39;&#39;
+            Returns the height of one square of the board
+
+            Returns:
+                float
+        &#39;&#39;&#39;
+        return self.contentsRect().height() / self.boardHeight
+
+    def start(self):
+        &#39;&#39;&#39;
+            Start the game
+        &#39;&#39;&#39;
+        self.isStarted = True  # determines if the game has started to TRUE
+        self.resetGame()  # reset the game
+        self.timer.start(self.timerSpeed,
+                         self)  # start the timer with the correct speed
+        print(&#34;start () - timer is started&#34;)
+
+    def timerEvent(self, event):
+        &#39;&#39;&#39;
+            This event is automatically called when the timer is updated.
+            Based on the timerSpeed variable.
+
+            Args:
+                event (Event): Timer event
+        &#39;&#39;&#39;
+        # TODO adapter this code to handle your timers
+        # if the timer that has &#39;ticked&#39; is the one in this class
+        if event.timerId() == self.timer.timerId():
+            if Board.counter == 0:
+                print(&#34;Game over&#34;)
+            self.counter -= 1
+            print(&#39;timerEvent()&#39;, self.counter)
+            self.updateTimerSignal.emit(self.counter)
+        else:
+            # if we do not handle an event pass it to the parent class
+            super(Board, self).timerEvent(event)
+
+    def paintEvent(self, event):
+        &#39;&#39;&#39;
+            Paints the board and the pieces of the game
+
+            Args:
+                event (Event): The paint event
+        &#39;&#39;&#39;
+        # painter = QPainter(self)
+        # self.drawBoardSquares(painter)
+        # self.drawPieces(painter)
+        pass
+
+    def mousePressEvent(self, event):
+        &#39;&#39;&#39;
+            Mouse press event handler
+
+            Args:
+                event (Event): The mouse press event
+        &#39;&#39;&#39;
+        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
+            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
+        print(&#34;mousePressEvent() - &#34; + clickLoc)
+        # TODO you could call some game logic here
+        self.clickLocationSignal.emit(clickLoc)
+
+    def resetGame(self):
+        &#39;&#39;&#39;
+            Clears pieces from the board&#39;
+        &#39;&#39;&#39;
+        # TODO write code to reset game
+        pass
+
+    def tryMove(self, newX, newY):
+        &#39;&#39;&#39;
+            Tries to move a piece
+
+            Args:
+                newX (Int): X axis position
+                newY (Int): Y axis position
+        &#39;&#39;&#39;
+        pass
+
+    def drawBoardSquares(self, painter):
+        &#39;&#39;&#39;
+            Draw all the square on the board
+
+            Args:
+                painter (QPainter): The painter to paint on the widget with
+        &#39;&#39;&#39;
+        # TODO set the default colour of the brush
+        for row in range(0, Board.boardHeight):
+            for col in range(0, Board.boardWidth):
+                painter.save()
+                # TODO set value equal the transformation
+                #   in the column direction
+                colTransformation = self.squareWidth() * col
+                # TODO set this value equal the transformation
+                #   in the row direction
+                rowTransformation = 0
+                painter.translate(colTransformation, rowTransformation)
+                painter.fillRect()  # TODO provide the required arguments
+                painter.restore()
+                # TODO change the colour of the brush so a checkered board is
+                # drawn - alternating on each iteration
+
+    def drawPieces(self, painter):
+        &#39;&#39;&#39;
+            Draw the prices on the board
+
+            Args:
+                painter (QPainter): The painter to paint with
+        &#39;&#39;&#39;
+        # empty square could be modeled with transparent pieces
+        # colour = Qt.transparent
+        for row in range(0, len(self.boardArray)):
+            for col in range(0, len(self.boardArray[0])):
+                painter.save()
+                painter.translate()
+
+                # TODO draw some the pieces as ellipses
+                # TODO choose colour &amp; set the painter brush to correct colour
+                radius = (self.squareWidth() - 2) / 2
+                center = QPoint(radius, radius)
+                painter.drawEllipse(center, radius, radius)
+                painter.restore()</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>PyQt5.QtWidgets.QFrame</li>
+<li>PyQt5.QtWidgets.QWidget</li>
+<li>PyQt5.QtCore.QObject</li>
+<li>sip.wrapper</li>
+<li>PyQt5.QtGui.QPaintDevice</li>
+<li>sip.simplewrapper</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="app.board.Board.boardHeight"><code class="name">var <span class="ident">boardHeight</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+<dt id="app.board.Board.boardWidth"><code class="name">var <span class="ident">boardWidth</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+<dt id="app.board.Board.counter"><code class="name">var <span class="ident">counter</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+<dt id="app.board.Board.timerSpeed"><code class="name">var <span class="ident">timerSpeed</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="app.board.Board.clickLocationSignal"><code class="name flex">
+<span>def <span class="ident">clickLocationSignal</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="app.board.Board.drawBoardSquares"><code class="name flex">
+<span>def <span class="ident">drawBoardSquares</span></span>(<span>self, painter)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Draw all the square on the board</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter to paint on the widget with</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawBoardSquares(self, painter):
+    &#39;&#39;&#39;
+        Draw all the square on the board
+
+        Args:
+            painter (QPainter): The painter to paint on the widget with
+    &#39;&#39;&#39;
+    # TODO set the default colour of the brush
+    for row in range(0, Board.boardHeight):
+        for col in range(0, Board.boardWidth):
+            painter.save()
+            # TODO set value equal the transformation
+            #   in the column direction
+            colTransformation = self.squareWidth() * col
+            # TODO set this value equal the transformation
+            #   in the row direction
+            rowTransformation = 0
+            painter.translate(colTransformation, rowTransformation)
+            painter.fillRect()  # TODO provide the required arguments
+            painter.restore()</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.drawPieces"><code class="name flex">
+<span>def <span class="ident">drawPieces</span></span>(<span>self, painter)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Draw the prices on the board</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter to paint with</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawPieces(self, painter):
+    &#39;&#39;&#39;
+        Draw the prices on the board
+
+        Args:
+            painter (QPainter): The painter to paint with
+    &#39;&#39;&#39;
+    # empty square could be modeled with transparent pieces
+    # colour = Qt.transparent
+    for row in range(0, len(self.boardArray)):
+        for col in range(0, len(self.boardArray[0])):
+            painter.save()
+            painter.translate()
+
+            # TODO draw some the pieces as ellipses
+            # TODO choose colour &amp; set the painter brush to correct colour
+            radius = (self.squareWidth() - 2) / 2
+            center = QPoint(radius, radius)
+            painter.drawEllipse(center, radius, radius)
+            painter.restore()</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.initBoard"><code class="name flex">
+<span>def <span class="ident">initBoard</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Initiates the board</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def initBoard(self):
+    &#39;&#39;&#39;
+        Initiates the board
+    &#39;&#39;&#39;
+    self.timer = QBasicTimer()  # create a timer for the game
+    self.isStarted = False  # game is not currently started
+    self.start()  # start the game which will start the timer
+
+    # TODO - create a 2d int/Piece array to store the state of the game
+    self.boardArray = []</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.mousePosToColRow"><code class="name flex">
+<span>def <span class="ident">mousePosToColRow</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Convert the mouse click event to a row and column</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>event</code></strong> :&ensp;<code>Event</code></dt>
+<dd>The mouse click event</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def mousePosToColRow(self, event):
+    &#39;&#39;&#39;
+        Convert the mouse click event to a row and column
+
+        Args:
+            event (Event): The mouse click event
+    &#39;&#39;&#39;
+    pass  # pass means ignore the code block - supresses errors</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.mousePressEvent"><code class="name flex">
+<span>def <span class="ident">mousePressEvent</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Mouse press event handler</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>event</code></strong> :&ensp;<code>Event</code></dt>
+<dd>The mouse press event</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def mousePressEvent(self, event):
+    &#39;&#39;&#39;
+        Mouse press event handler
+
+        Args:
+            event (Event): The mouse press event
+    &#39;&#39;&#39;
+    clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
+        event.y()) + &#34;]&#34;  # the location where a mouse click was registered
+    print(&#34;mousePressEvent() - &#34; + clickLoc)
+    # TODO you could call some game logic here
+    self.clickLocationSignal.emit(clickLoc)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.paintEvent"><code class="name flex">
+<span>def <span class="ident">paintEvent</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Paints the board and the pieces of the game</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>event</code></strong> :&ensp;<code>Event</code></dt>
+<dd>The paint event</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def paintEvent(self, event):
+    &#39;&#39;&#39;
+        Paints the board and the pieces of the game
+
+        Args:
+            event (Event): The paint event
+    &#39;&#39;&#39;
+    # painter = QPainter(self)
+    # self.drawBoardSquares(painter)
+    # self.drawPieces(painter)
+    pass</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.printBoardArray"><code class="name flex">
+<span>def <span class="ident">printBoardArray</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Pretty prints the boardArray to the terminal</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def printBoardArray(self):
+    &#39;&#39;&#39;
+        Pretty prints the boardArray to the terminal
+    &#39;&#39;&#39;
+    print(&#34;boardArray:&#34;)
+    print(&#39;\n&#39;.join([
+        &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
+    ]))</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.resetGame"><code class="name flex">
+<span>def <span class="ident">resetGame</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Clears pieces from the board'</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resetGame(self):
+    &#39;&#39;&#39;
+        Clears pieces from the board&#39;
+    &#39;&#39;&#39;
+    # TODO write code to reset game
+    pass</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.squareHeight"><code class="name flex">
+<span>def <span class="ident">squareHeight</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Returns the height of one square of the board</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>float</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def squareHeight(self):
+    &#39;&#39;&#39;
+        Returns the height of one square of the board
+
+        Returns:
+            float
+    &#39;&#39;&#39;
+    return self.contentsRect().height() / self.boardHeight</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.squareWidth"><code class="name flex">
+<span>def <span class="ident">squareWidth</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Returns the width of one square in the board</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>float</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def squareWidth(self):
+    &#39;&#39;&#39;
+        Returns the width of one square in the board
+
+        Returns:
+            float
+    &#39;&#39;&#39;
+    return self.contentsRect().width() / self.boardWidth</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.start"><code class="name flex">
+<span>def <span class="ident">start</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Start the game</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def start(self):
+    &#39;&#39;&#39;
+        Start the game
+    &#39;&#39;&#39;
+    self.isStarted = True  # determines if the game has started to TRUE
+    self.resetGame()  # reset the game
+    self.timer.start(self.timerSpeed,
+                     self)  # start the timer with the correct speed
+    print(&#34;start () - timer is started&#34;)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.timerEvent"><code class="name flex">
+<span>def <span class="ident">timerEvent</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>This event is automatically called when the timer is updated.
+Based on the timerSpeed variable.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>event</code></strong> :&ensp;<code>Event</code></dt>
+<dd>Timer event</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def timerEvent(self, event):
+    &#39;&#39;&#39;
+        This event is automatically called when the timer is updated.
+        Based on the timerSpeed variable.
+
+        Args:
+            event (Event): Timer event
+    &#39;&#39;&#39;
+    # TODO adapter this code to handle your timers
+    # if the timer that has &#39;ticked&#39; is the one in this class
+    if event.timerId() == self.timer.timerId():
+        if Board.counter == 0:
+            print(&#34;Game over&#34;)
+        self.counter -= 1
+        print(&#39;timerEvent()&#39;, self.counter)
+        self.updateTimerSignal.emit(self.counter)
+    else:
+        # if we do not handle an event pass it to the parent class
+        super(Board, self).timerEvent(event)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.tryMove"><code class="name flex">
+<span>def <span class="ident">tryMove</span></span>(<span>self, newX, newY)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Tries to move a piece</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>newX</code></strong> :&ensp;<code>Int</code></dt>
+<dd>X axis position</dd>
+<dt><strong><code>newY</code></strong> :&ensp;<code>Int</code></dt>
+<dd>Y axis position</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def tryMove(self, newX, newY):
+    &#39;&#39;&#39;
+        Tries to move a piece
+
+        Args:
+            newX (Int): X axis position
+            newY (Int): Y axis position
+    &#39;&#39;&#39;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.updateTimerSignal"><code class="name flex">
+<span>def <span class="ident">updateTimerSignal</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="app" href="index.html">app</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="app.board.Board" href="#app.board.Board">Board</a></code></h4>
+<ul class="two-column">
+<li><code><a title="app.board.Board.boardHeight" href="#app.board.Board.boardHeight">boardHeight</a></code></li>
+<li><code><a title="app.board.Board.boardWidth" href="#app.board.Board.boardWidth">boardWidth</a></code></li>
+<li><code><a title="app.board.Board.clickLocationSignal" href="#app.board.Board.clickLocationSignal">clickLocationSignal</a></code></li>
+<li><code><a title="app.board.Board.counter" href="#app.board.Board.counter">counter</a></code></li>
+<li><code><a title="app.board.Board.drawBoardSquares" href="#app.board.Board.drawBoardSquares">drawBoardSquares</a></code></li>
+<li><code><a title="app.board.Board.drawPieces" href="#app.board.Board.drawPieces">drawPieces</a></code></li>
+<li><code><a title="app.board.Board.initBoard" href="#app.board.Board.initBoard">initBoard</a></code></li>
+<li><code><a title="app.board.Board.mousePosToColRow" href="#app.board.Board.mousePosToColRow">mousePosToColRow</a></code></li>
+<li><code><a title="app.board.Board.mousePressEvent" href="#app.board.Board.mousePressEvent">mousePressEvent</a></code></li>
+<li><code><a title="app.board.Board.paintEvent" href="#app.board.Board.paintEvent">paintEvent</a></code></li>
+<li><code><a title="app.board.Board.printBoardArray" href="#app.board.Board.printBoardArray">printBoardArray</a></code></li>
+<li><code><a title="app.board.Board.resetGame" href="#app.board.Board.resetGame">resetGame</a></code></li>
+<li><code><a title="app.board.Board.squareHeight" href="#app.board.Board.squareHeight">squareHeight</a></code></li>
+<li><code><a title="app.board.Board.squareWidth" href="#app.board.Board.squareWidth">squareWidth</a></code></li>
+<li><code><a title="app.board.Board.start" href="#app.board.Board.start">start</a></code></li>
+<li><code><a title="app.board.Board.timerEvent" href="#app.board.Board.timerEvent">timerEvent</a></code></li>
+<li><code><a title="app.board.Board.timerSpeed" href="#app.board.Board.timerSpeed">timerSpeed</a></code></li>
+<li><code><a title="app.board.Board.tryMove" href="#app.board.Board.tryMove">tryMove</a></code></li>
+<li><code><a title="app.board.Board.updateTimerSignal" href="#app.board.Board.updateTimerSignal">updateTimerSignal</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
