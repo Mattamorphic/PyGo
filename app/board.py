@@ -114,8 +114,17 @@ class Board(QFrame):  # base the board on a QFrame widget
         print("mousePressEvent() - " + clickLoc)
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
+
+        self.boardArray[row][col] = 2
+
+        self.update()
+
+
         print(f"Click in {col, row}")
         self.clickLocationSignal.emit(clickLoc)
+
+
+
 
     def resetGame(self):
         '''
@@ -153,6 +162,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             Args:
                 painter (QPainter): The painter to paint with
+
+                black and white squares being drawn on board
         '''
         for row in range(0, len(self.boardArray)):
             for col in range(0, len(self.boardArray[0])):
