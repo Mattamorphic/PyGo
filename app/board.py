@@ -114,12 +114,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         print("mousePressEvent() - " + clickLoc)
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
-
         self.boardArray[row][col] = 1
-
         self.update()
-
-
         print(f"Click in {col, row}")
         self.clickLocationSignal.emit(clickLoc)
 
@@ -211,15 +207,14 @@ class Board(QFrame):  # base the board on a QFrame widget
     def drawPiece(self, painter, col, row, color):
         '''
             Draw a piece at the given col, row
+            pen is doing the circle
+            brush is filling in the circle
 
             Args:
                 painter (QPainter): The painter
                 col     (int):      The column to draw at
                 row     (int):      The row to draw at
                 color   (Qt.color): The color for the piece
-
-                pen is doing the circle
-                brush is filling in the circle
         '''
         painter.save()
         painter.setPen(QPen(QColor(color), 0))
