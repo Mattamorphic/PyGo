@@ -29,8 +29,8 @@
     Represents the board
 &#39;&#39;&#39;
 from PyQt5.QtWidgets import QFrame
-from PyQt5.QtCore import QBasicTimer, pyqtSignal, QPoint
-# from PyQt5.QtGui import QPainter # TODO Uncomment when we instantiate
+from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
+from PyQt5.QtGui import QPainter, QColor, QPen
 # from .piece import Piece # TODO Uncomment when we start using this
 
 
@@ -39,11 +39,12 @@ class Board(QFrame):  # base the board on a QFrame widget
     clickLocationSignal = pyqtSignal(
         str)  # signal sent when there is a new click location
 
-    # TODO set the board width and height to be square
-    boardWidth = 0  # TODO this needs updating - board is 0 squares wide
-    boardHeight = 0  #
+    boardWidth = 7
+    boardHeight = 7
     timerSpeed = 1  # the timer updates ever 1 second
     counter = 10  # the number the counter will count down from
+
+    checkColours = [(255, 235, 205), (205, 133, 63)]
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -56,12 +57,9 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
         self.start()  # start the game which will start the timer
-
-        # TODO - create a 2d int/Piece array to store the state of the game
-        self.boardArray = []
-
-        # TODO - uncomment this method after create the array above
-        # self.printBoardArray()
+        self.boardArray = [[0 for j in range(self.boardWidth)]
+                           for i in range(self.boardHeight)]
+        self.printBoardArray()
 
     def printBoardArray(self):
         &#39;&#39;&#39;
@@ -71,15 +69,6 @@ class Board(QFrame):  # base the board on a QFrame widget
         print(&#39;\n&#39;.join([
             &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
         ]))
-
-    def mousePosToColRow(self, event):
-        &#39;&#39;&#39;
-            Convert the mouse click event to a row and column
-
-            Args:
-                event (Event): The mouse click event
-        &#39;&#39;&#39;
-        pass  # pass means ignore the code block - supresses errors
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -107,7 +96,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.resetGame()  # reset the game
         self.timer.start(self.timerSpeed,
                          self)  # start the timer with the correct speed
-        print(&#34;start () - timer is started&#34;)
+        # print(&#34;start () - timer is started&#34;)
 
     def timerEvent(self, event):
         &#39;&#39;&#39;
@@ -123,7 +112,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             if Board.counter == 0:
                 print(&#34;Game over&#34;)
             self.counter -= 1
-            print(&#39;timerEvent()&#39;, self.counter)
+            # print(&#39;timerEvent()&#39;, self.counter)
             self.updateTimerSignal.emit(self.counter)
         else:
             # if we do not handle an event pass it to the parent class
@@ -136,10 +125,9 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The paint event
         &#39;&#39;&#39;
-        # painter = QPainter(self)
-        # self.drawBoardSquares(painter)
-        # self.drawPieces(painter)
-        pass
+        painter = QPainter(self)
+        self.drawBoardSquares(painter)
+        self.drawPieces(painter)
 
     def mousePressEvent(self, event):
         &#39;&#39;&#39;
@@ -152,6 +140,8 @@ class Board(QFrame):  # base the board on a QFrame widget
             event.y()) + &#34;]&#34;  # the location where a mouse click was registered
         print(&#34;mousePressEvent() - &#34; + clickLoc)
         # TODO you could call some game logic here
+        row, col = self.getSquareRowCol(event.x(), event.y())
+        print(f&#34;Click in {col, row}&#34;)
         self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
@@ -178,21 +168,11 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 painter (QPainter): The painter to paint on the widget with
         &#39;&#39;&#39;
-        # TODO set the default colour of the brush
         for row in range(0, Board.boardHeight):
             for col in range(0, Board.boardWidth):
-                painter.save()
-                # TODO set value equal the transformation
-                #   in the column direction
-                colTransformation = self.squareWidth() * col
-                # TODO set this value equal the transformation
-                #   in the row direction
-                rowTransformation = 0
-                painter.translate(colTransformation, rowTransformation)
-                painter.fillRect()  # TODO provide the required arguments
-                painter.restore()
-                # TODO change the colour of the brush so a checkered board is
-                # drawn - alternating on each iteration
+                self.drawSquare(
+                    painter, col, row, self.checkColours[0] if
+                    (col + row) % 2 == 1 else self.checkColours[1])
 
     def drawPieces(self, painter):
         &#39;&#39;&#39;
@@ -201,19 +181,115 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 painter (QPainter): The painter to paint with
         &#39;&#39;&#39;
-        # empty square could be modeled with transparent pieces
-        # colour = Qt.transparent
         for row in range(0, len(self.boardArray)):
             for col in range(0, len(self.boardArray[0])):
-                painter.save()
-                painter.translate()
+                square = self.boardArray[row][col]
+                if square == 0:
+                    self.drawEmptySpace(painter, col, row)
+                elif square == 1:
+                    self.drawWhitePiece(painter, col, row)
+                else:
+                    self.drawBlackPiece(painter, col, row)
 
-                # TODO draw some the pieces as ellipses
-                # TODO choose colour &amp; set the painter brush to correct colour
-                radius = (self.squareWidth() - 2) / 2
-                center = QPoint(radius, radius)
-                painter.drawEllipse(center, radius, radius)
-                painter.restore()</code></pre>
+    def drawEmptySpace(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw an empty space at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.transparent)
+
+    def drawBlackPiece(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw a black piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.black)
+
+    def drawWhitePiece(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw a white piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.white)
+
+    def drawPiece(self, painter, col, row, color):
+        &#39;&#39;&#39;
+            Draw a piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+                color   (Qt.color): The color for the piece
+        &#39;&#39;&#39;
+        painter.save()
+        painter.setPen(QPen(QColor(color), 2))
+        painter.translate(*self.getSquareCoords(col, row))
+        radius = (self.squareWidth() - 2) / 2
+        center = QPoint(radius, radius)
+        painter.drawEllipse(center, radius, radius)
+        painter.restore()
+
+    def drawSquare(self, painter, col, row, color):
+        &#39;&#39;&#39;
+            Draw a board square on the board
+
+            Args:
+                painter (QPainter): The QPainter instance we are using
+                col     (int)     : The current column we are rendering in
+                row     (row)     : The current row we are rendering in
+                rgb     (iter)    : The rgba int values
+        &#39;&#39;&#39;
+        width = int(self.squareWidth())
+        height = int(self.squareHeight())
+        midWidth = width // 2
+        midHeight = height // 2
+        painter.save()
+        painter.translate(*self.getSquareCoords(col, row))
+        painter.fillRect(0, 0, width, height, QColor(*color))
+        painter.setPen(QPen(QColor(139, 69, 19), 2))
+        painter.drawRect(0, 0, width, height)
+        painter.drawLine(0, midHeight, width, midHeight)
+        painter.drawLine(midWidth, 0, midWidth, height)
+        painter.restore()
+
+    def getSquareCoords(self, col, row):
+        &#39;&#39;&#39;
+            Calculate the square coords
+
+            Args:
+                col (int): The currrent col
+                row (int): The current row
+
+            Returns:
+                Tuple
+        &#39;&#39;&#39;
+        return (self.squareWidth() * col, self.squareHeight() * row)
+
+    def getSquareRowCol(self, x, y):
+        &#39;&#39;&#39;
+            Given X and Y find the column and the row
+
+            Args:
+                x (int):    The X POS
+                y (int):    The Y POS
+
+            Returns:
+                Tuple
+        &#39;&#39;&#39;
+        return (int(y // self.squareHeight()), int(x // self.squareWidth()))</code></pre>
 </details>
 </section>
 <section>
@@ -240,11 +316,12 @@ class Board(QFrame):  # base the board on a QFrame widget
     clickLocationSignal = pyqtSignal(
         str)  # signal sent when there is a new click location
 
-    # TODO set the board width and height to be square
-    boardWidth = 0  # TODO this needs updating - board is 0 squares wide
-    boardHeight = 0  #
+    boardWidth = 7
+    boardHeight = 7
     timerSpeed = 1  # the timer updates ever 1 second
     counter = 10  # the number the counter will count down from
+
+    checkColours = [(255, 235, 205), (205, 133, 63)]
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -257,12 +334,9 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
         self.start()  # start the game which will start the timer
-
-        # TODO - create a 2d int/Piece array to store the state of the game
-        self.boardArray = []
-
-        # TODO - uncomment this method after create the array above
-        # self.printBoardArray()
+        self.boardArray = [[0 for j in range(self.boardWidth)]
+                           for i in range(self.boardHeight)]
+        self.printBoardArray()
 
     def printBoardArray(self):
         &#39;&#39;&#39;
@@ -272,15 +346,6 @@ class Board(QFrame):  # base the board on a QFrame widget
         print(&#39;\n&#39;.join([
             &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
         ]))
-
-    def mousePosToColRow(self, event):
-        &#39;&#39;&#39;
-            Convert the mouse click event to a row and column
-
-            Args:
-                event (Event): The mouse click event
-        &#39;&#39;&#39;
-        pass  # pass means ignore the code block - supresses errors
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -308,7 +373,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.resetGame()  # reset the game
         self.timer.start(self.timerSpeed,
                          self)  # start the timer with the correct speed
-        print(&#34;start () - timer is started&#34;)
+        # print(&#34;start () - timer is started&#34;)
 
     def timerEvent(self, event):
         &#39;&#39;&#39;
@@ -324,7 +389,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             if Board.counter == 0:
                 print(&#34;Game over&#34;)
             self.counter -= 1
-            print(&#39;timerEvent()&#39;, self.counter)
+            # print(&#39;timerEvent()&#39;, self.counter)
             self.updateTimerSignal.emit(self.counter)
         else:
             # if we do not handle an event pass it to the parent class
@@ -337,10 +402,9 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The paint event
         &#39;&#39;&#39;
-        # painter = QPainter(self)
-        # self.drawBoardSquares(painter)
-        # self.drawPieces(painter)
-        pass
+        painter = QPainter(self)
+        self.drawBoardSquares(painter)
+        self.drawPieces(painter)
 
     def mousePressEvent(self, event):
         &#39;&#39;&#39;
@@ -353,6 +417,8 @@ class Board(QFrame):  # base the board on a QFrame widget
             event.y()) + &#34;]&#34;  # the location where a mouse click was registered
         print(&#34;mousePressEvent() - &#34; + clickLoc)
         # TODO you could call some game logic here
+        row, col = self.getSquareRowCol(event.x(), event.y())
+        print(f&#34;Click in {col, row}&#34;)
         self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
@@ -379,21 +445,11 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 painter (QPainter): The painter to paint on the widget with
         &#39;&#39;&#39;
-        # TODO set the default colour of the brush
         for row in range(0, Board.boardHeight):
             for col in range(0, Board.boardWidth):
-                painter.save()
-                # TODO set value equal the transformation
-                #   in the column direction
-                colTransformation = self.squareWidth() * col
-                # TODO set this value equal the transformation
-                #   in the row direction
-                rowTransformation = 0
-                painter.translate(colTransformation, rowTransformation)
-                painter.fillRect()  # TODO provide the required arguments
-                painter.restore()
-                # TODO change the colour of the brush so a checkered board is
-                # drawn - alternating on each iteration
+                self.drawSquare(
+                    painter, col, row, self.checkColours[0] if
+                    (col + row) % 2 == 1 else self.checkColours[1])
 
     def drawPieces(self, painter):
         &#39;&#39;&#39;
@@ -402,19 +458,115 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 painter (QPainter): The painter to paint with
         &#39;&#39;&#39;
-        # empty square could be modeled with transparent pieces
-        # colour = Qt.transparent
         for row in range(0, len(self.boardArray)):
             for col in range(0, len(self.boardArray[0])):
-                painter.save()
-                painter.translate()
+                square = self.boardArray[row][col]
+                if square == 0:
+                    self.drawEmptySpace(painter, col, row)
+                elif square == 1:
+                    self.drawWhitePiece(painter, col, row)
+                else:
+                    self.drawBlackPiece(painter, col, row)
 
-                # TODO draw some the pieces as ellipses
-                # TODO choose colour &amp; set the painter brush to correct colour
-                radius = (self.squareWidth() - 2) / 2
-                center = QPoint(radius, radius)
-                painter.drawEllipse(center, radius, radius)
-                painter.restore()</code></pre>
+    def drawEmptySpace(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw an empty space at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.transparent)
+
+    def drawBlackPiece(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw a black piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.black)
+
+    def drawWhitePiece(self, painter, col, row):
+        &#39;&#39;&#39;
+            Helper method to draw a white piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+        &#39;&#39;&#39;
+        self.drawPiece(painter, col, row, Qt.white)
+
+    def drawPiece(self, painter, col, row, color):
+        &#39;&#39;&#39;
+            Draw a piece at the given col, row
+
+            Args:
+                painter (QPainter): The painter
+                col     (int):      The column to draw at
+                row     (int):      The row to draw at
+                color   (Qt.color): The color for the piece
+        &#39;&#39;&#39;
+        painter.save()
+        painter.setPen(QPen(QColor(color), 2))
+        painter.translate(*self.getSquareCoords(col, row))
+        radius = (self.squareWidth() - 2) / 2
+        center = QPoint(radius, radius)
+        painter.drawEllipse(center, radius, radius)
+        painter.restore()
+
+    def drawSquare(self, painter, col, row, color):
+        &#39;&#39;&#39;
+            Draw a board square on the board
+
+            Args:
+                painter (QPainter): The QPainter instance we are using
+                col     (int)     : The current column we are rendering in
+                row     (row)     : The current row we are rendering in
+                rgb     (iter)    : The rgba int values
+        &#39;&#39;&#39;
+        width = int(self.squareWidth())
+        height = int(self.squareHeight())
+        midWidth = width // 2
+        midHeight = height // 2
+        painter.save()
+        painter.translate(*self.getSquareCoords(col, row))
+        painter.fillRect(0, 0, width, height, QColor(*color))
+        painter.setPen(QPen(QColor(139, 69, 19), 2))
+        painter.drawRect(0, 0, width, height)
+        painter.drawLine(0, midHeight, width, midHeight)
+        painter.drawLine(midWidth, 0, midWidth, height)
+        painter.restore()
+
+    def getSquareCoords(self, col, row):
+        &#39;&#39;&#39;
+            Calculate the square coords
+
+            Args:
+                col (int): The currrent col
+                row (int): The current row
+
+            Returns:
+                Tuple
+        &#39;&#39;&#39;
+        return (self.squareWidth() * col, self.squareHeight() * row)
+
+    def getSquareRowCol(self, x, y):
+        &#39;&#39;&#39;
+            Given X and Y find the column and the row
+
+            Args:
+                x (int):    The X POS
+                y (int):    The Y POS
+
+            Returns:
+                Tuple
+        &#39;&#39;&#39;
+        return (int(y // self.squareHeight()), int(x // self.squareWidth()))</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -469,6 +621,12 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 4
 </code></pre></section>
 </dd>
+<dt id="app.board.Board.checkColours"><code class="name">var <span class="ident">checkColours</span></code></dt>
+<dd>
+<section class="desc"><p>Built-in mutable sequence.</p>
+<p>If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.</p></section>
+</dd>
 <dt id="app.board.Board.counter"><code class="name">var <span class="ident">counter</span></code></dt>
 <dd>
 <section class="desc"><p>int([x]) -&gt; integer
@@ -520,6 +678,38 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 <dd>
 <section class="desc"></section>
 </dd>
+<dt id="app.board.Board.drawBlackPiece"><code class="name flex">
+<span>def <span class="ident">drawBlackPiece</span></span>(<span>self, painter, col, row)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Helper method to draw a black piece at the given col, row</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter</dd>
+</dl>
+<p>col
+(int):
+The column to draw at
+row
+(int):
+The row to draw at</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawBlackPiece(self, painter, col, row):
+    &#39;&#39;&#39;
+        Helper method to draw a black piece at the given col, row
+
+        Args:
+            painter (QPainter): The painter
+            col     (int):      The column to draw at
+            row     (int):      The row to draw at
+    &#39;&#39;&#39;
+    self.drawPiece(painter, col, row, Qt.black)</code></pre>
+</details>
+</dd>
 <dt id="app.board.Board.drawBoardSquares"><code class="name flex">
 <span>def <span class="ident">drawBoardSquares</span></span>(<span>self, painter)</span>
 </code></dt>
@@ -541,19 +731,84 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
         Args:
             painter (QPainter): The painter to paint on the widget with
     &#39;&#39;&#39;
-    # TODO set the default colour of the brush
     for row in range(0, Board.boardHeight):
         for col in range(0, Board.boardWidth):
-            painter.save()
-            # TODO set value equal the transformation
-            #   in the column direction
-            colTransformation = self.squareWidth() * col
-            # TODO set this value equal the transformation
-            #   in the row direction
-            rowTransformation = 0
-            painter.translate(colTransformation, rowTransformation)
-            painter.fillRect()  # TODO provide the required arguments
-            painter.restore()</code></pre>
+            self.drawSquare(
+                painter, col, row, self.checkColours[0] if
+                (col + row) % 2 == 1 else self.checkColours[1])</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.drawEmptySpace"><code class="name flex">
+<span>def <span class="ident">drawEmptySpace</span></span>(<span>self, painter, col, row)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Helper method to draw an empty space at the given col, row</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter</dd>
+</dl>
+<p>col
+(int):
+The column to draw at
+row
+(int):
+The row to draw at</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawEmptySpace(self, painter, col, row):
+    &#39;&#39;&#39;
+        Helper method to draw an empty space at the given col, row
+
+        Args:
+            painter (QPainter): The painter
+            col     (int):      The column to draw at
+            row     (int):      The row to draw at
+    &#39;&#39;&#39;
+    self.drawPiece(painter, col, row, Qt.transparent)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.drawPiece"><code class="name flex">
+<span>def <span class="ident">drawPiece</span></span>(<span>self, painter, col, row, color)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Draw a piece at the given col, row</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter</dd>
+</dl>
+<p>col
+(int):
+The column to draw at
+row
+(int):
+The row to draw at
+color
+(Qt.color): The color for the piece</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawPiece(self, painter, col, row, color):
+    &#39;&#39;&#39;
+        Draw a piece at the given col, row
+
+        Args:
+            painter (QPainter): The painter
+            col     (int):      The column to draw at
+            row     (int):      The row to draw at
+            color   (Qt.color): The color for the piece
+    &#39;&#39;&#39;
+    painter.save()
+    painter.setPen(QPen(QColor(color), 2))
+    painter.translate(*self.getSquareCoords(col, row))
+    radius = (self.squareWidth() - 2) / 2
+    center = QPoint(radius, radius)
+    painter.drawEllipse(center, radius, radius)
+    painter.restore()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.drawPieces"><code class="name flex">
@@ -577,19 +832,164 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
         Args:
             painter (QPainter): The painter to paint with
     &#39;&#39;&#39;
-    # empty square could be modeled with transparent pieces
-    # colour = Qt.transparent
     for row in range(0, len(self.boardArray)):
         for col in range(0, len(self.boardArray[0])):
-            painter.save()
-            painter.translate()
+            square = self.boardArray[row][col]
+            if square == 0:
+                self.drawEmptySpace(painter, col, row)
+            elif square == 1:
+                self.drawWhitePiece(painter, col, row)
+            else:
+                self.drawBlackPiece(painter, col, row)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.drawSquare"><code class="name flex">
+<span>def <span class="ident">drawSquare</span></span>(<span>self, painter, col, row, color)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Draw a board square on the board</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The QPainter instance we are using</dd>
+</dl>
+<p>col
+(int)
+: The current column we are rendering in
+row
+(row)
+: The current row we are rendering in
+rgb
+(iter)
+: The rgba int values</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawSquare(self, painter, col, row, color):
+    &#39;&#39;&#39;
+        Draw a board square on the board
 
-            # TODO draw some the pieces as ellipses
-            # TODO choose colour &amp; set the painter brush to correct colour
-            radius = (self.squareWidth() - 2) / 2
-            center = QPoint(radius, radius)
-            painter.drawEllipse(center, radius, radius)
-            painter.restore()</code></pre>
+        Args:
+            painter (QPainter): The QPainter instance we are using
+            col     (int)     : The current column we are rendering in
+            row     (row)     : The current row we are rendering in
+            rgb     (iter)    : The rgba int values
+    &#39;&#39;&#39;
+    width = int(self.squareWidth())
+    height = int(self.squareHeight())
+    midWidth = width // 2
+    midHeight = height // 2
+    painter.save()
+    painter.translate(*self.getSquareCoords(col, row))
+    painter.fillRect(0, 0, width, height, QColor(*color))
+    painter.setPen(QPen(QColor(139, 69, 19), 2))
+    painter.drawRect(0, 0, width, height)
+    painter.drawLine(0, midHeight, width, midHeight)
+    painter.drawLine(midWidth, 0, midWidth, height)
+    painter.restore()</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.drawWhitePiece"><code class="name flex">
+<span>def <span class="ident">drawWhitePiece</span></span>(<span>self, painter, col, row)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Helper method to draw a white piece at the given col, row</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
+<dd>The painter</dd>
+</dl>
+<p>col
+(int):
+The column to draw at
+row
+(int):
+The row to draw at</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drawWhitePiece(self, painter, col, row):
+    &#39;&#39;&#39;
+        Helper method to draw a white piece at the given col, row
+
+        Args:
+            painter (QPainter): The painter
+            col     (int):      The column to draw at
+            row     (int):      The row to draw at
+    &#39;&#39;&#39;
+    self.drawPiece(painter, col, row, Qt.white)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.getSquareCoords"><code class="name flex">
+<span>def <span class="ident">getSquareCoords</span></span>(<span>self, col, row)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Calculate the square coords</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>col</code></strong> :&ensp;<code>int</code></dt>
+<dd>The currrent col</dd>
+<dt><strong><code>row</code></strong> :&ensp;<code>int</code></dt>
+<dd>The current row</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tuple</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getSquareCoords(self, col, row):
+    &#39;&#39;&#39;
+        Calculate the square coords
+
+        Args:
+            col (int): The currrent col
+            row (int): The current row
+
+        Returns:
+            Tuple
+    &#39;&#39;&#39;
+    return (self.squareWidth() * col, self.squareHeight() * row)</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.getSquareRowCol"><code class="name flex">
+<span>def <span class="ident">getSquareRowCol</span></span>(<span>self, x, y)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Given X and Y find the column and the row</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong> :&ensp;<code>int</code></dt>
+<dd>The X POS</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>int</code></dt>
+<dd>The Y POS</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tuple</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getSquareRowCol(self, x, y):
+    &#39;&#39;&#39;
+        Given X and Y find the column and the row
+
+        Args:
+            x (int):    The X POS
+            y (int):    The Y POS
+
+        Returns:
+            Tuple
+    &#39;&#39;&#39;
+    return (int(y // self.squareHeight()), int(x // self.squareWidth()))</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.initBoard"><code class="name flex">
@@ -608,33 +1008,9 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
     self.timer = QBasicTimer()  # create a timer for the game
     self.isStarted = False  # game is not currently started
     self.start()  # start the game which will start the timer
-
-    # TODO - create a 2d int/Piece array to store the state of the game
-    self.boardArray = []</code></pre>
-</details>
-</dd>
-<dt id="app.board.Board.mousePosToColRow"><code class="name flex">
-<span>def <span class="ident">mousePosToColRow</span></span>(<span>self, event)</span>
-</code></dt>
-<dd>
-<section class="desc"><p>Convert the mouse click event to a row and column</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>event</code></strong> :&ensp;<code>Event</code></dt>
-<dd>The mouse click event</dd>
-</dl></section>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def mousePosToColRow(self, event):
-    &#39;&#39;&#39;
-        Convert the mouse click event to a row and column
-
-        Args:
-            event (Event): The mouse click event
-    &#39;&#39;&#39;
-    pass  # pass means ignore the code block - supresses errors</code></pre>
+    self.boardArray = [[0 for j in range(self.boardWidth)]
+                       for i in range(self.boardHeight)]
+    self.printBoardArray()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.mousePressEvent"><code class="name flex">
@@ -662,6 +1038,8 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
         event.y()) + &#34;]&#34;  # the location where a mouse click was registered
     print(&#34;mousePressEvent() - &#34; + clickLoc)
     # TODO you could call some game logic here
+    row, col = self.getSquareRowCol(event.x(), event.y())
+    print(f&#34;Click in {col, row}&#34;)
     self.clickLocationSignal.emit(clickLoc)</code></pre>
 </details>
 </dd>
@@ -686,10 +1064,9 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
         Args:
             event (Event): The paint event
     &#39;&#39;&#39;
-    # painter = QPainter(self)
-    # self.drawBoardSquares(painter)
-    # self.drawPieces(painter)
-    pass</code></pre>
+    painter = QPainter(self)
+    self.drawBoardSquares(painter)
+    self.drawPieces(painter)</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.printBoardArray"><code class="name flex">
@@ -792,8 +1169,7 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
     self.isStarted = True  # determines if the game has started to TRUE
     self.resetGame()  # reset the game
     self.timer.start(self.timerSpeed,
-                     self)  # start the timer with the correct speed
-    print(&#34;start () - timer is started&#34;)</code></pre>
+                     self)  # start the timer with the correct speed</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.timerEvent"><code class="name flex">
@@ -825,7 +1201,7 @@ Based on the timerSpeed variable.</p>
         if Board.counter == 0:
             print(&#34;Game over&#34;)
         self.counter -= 1
-        print(&#39;timerEvent()&#39;, self.counter)
+        # print(&#39;timerEvent()&#39;, self.counter)
         self.updateTimerSignal.emit(self.counter)
     else:
         # if we do not handle an event pass it to the parent class
@@ -888,12 +1264,19 @@ Based on the timerSpeed variable.</p>
 <ul class="two-column">
 <li><code><a title="app.board.Board.boardHeight" href="#app.board.Board.boardHeight">boardHeight</a></code></li>
 <li><code><a title="app.board.Board.boardWidth" href="#app.board.Board.boardWidth">boardWidth</a></code></li>
+<li><code><a title="app.board.Board.checkColours" href="#app.board.Board.checkColours">checkColours</a></code></li>
 <li><code><a title="app.board.Board.clickLocationSignal" href="#app.board.Board.clickLocationSignal">clickLocationSignal</a></code></li>
 <li><code><a title="app.board.Board.counter" href="#app.board.Board.counter">counter</a></code></li>
+<li><code><a title="app.board.Board.drawBlackPiece" href="#app.board.Board.drawBlackPiece">drawBlackPiece</a></code></li>
 <li><code><a title="app.board.Board.drawBoardSquares" href="#app.board.Board.drawBoardSquares">drawBoardSquares</a></code></li>
+<li><code><a title="app.board.Board.drawEmptySpace" href="#app.board.Board.drawEmptySpace">drawEmptySpace</a></code></li>
+<li><code><a title="app.board.Board.drawPiece" href="#app.board.Board.drawPiece">drawPiece</a></code></li>
 <li><code><a title="app.board.Board.drawPieces" href="#app.board.Board.drawPieces">drawPieces</a></code></li>
+<li><code><a title="app.board.Board.drawSquare" href="#app.board.Board.drawSquare">drawSquare</a></code></li>
+<li><code><a title="app.board.Board.drawWhitePiece" href="#app.board.Board.drawWhitePiece">drawWhitePiece</a></code></li>
+<li><code><a title="app.board.Board.getSquareCoords" href="#app.board.Board.getSquareCoords">getSquareCoords</a></code></li>
+<li><code><a title="app.board.Board.getSquareRowCol" href="#app.board.Board.getSquareRowCol">getSquareRowCol</a></code></li>
 <li><code><a title="app.board.Board.initBoard" href="#app.board.Board.initBoard">initBoard</a></code></li>
-<li><code><a title="app.board.Board.mousePosToColRow" href="#app.board.Board.mousePosToColRow">mousePosToColRow</a></code></li>
 <li><code><a title="app.board.Board.mousePressEvent" href="#app.board.Board.mousePressEvent">mousePressEvent</a></code></li>
 <li><code><a title="app.board.Board.paintEvent" href="#app.board.Board.paintEvent">paintEvent</a></code></li>
 <li><code><a title="app.board.Board.printBoardArray" href="#app.board.Board.printBoardArray">printBoardArray</a></code></li>
