@@ -78,5 +78,5 @@ class ScoreBoard(QDockWidget):
         '''
         update = "Time Remaining:" + str(timeRemainng)
         self.label_timeRemaining.setText(update)
-        print('slot ' + update)
+        # print('slot ' + update)
         # self.redraw()
