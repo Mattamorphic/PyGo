@@ -115,7 +115,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
 
-        self.boardArray[row][col] = 2
+        self.boardArray[row][col] = 1
 
         self.update()
 
@@ -217,9 +217,13 @@ class Board(QFrame):  # base the board on a QFrame widget
                 col     (int):      The column to draw at
                 row     (int):      The row to draw at
                 color   (Qt.color): The color for the piece
+
+                pen is doing the circle
+                brush is filling in the circle
         '''
         painter.save()
-        painter.setPen(QPen(QColor(color), 2))
+        painter.setPen(QPen(QColor(color), 0))
+        painter.setBrush(QColor(color))
         painter.translate(*self.getSquareCoords(col, row))
         radius = (self.squareWidth() - 2) / 2
         center = QPoint(radius, radius)
