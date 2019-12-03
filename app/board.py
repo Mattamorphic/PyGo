@@ -9,8 +9,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen
 
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
+    clickLocationSignal = pyqtSignal(str)  # signal sent when there is a new click location
 
     boardWidth = 7
     boardHeight = 7
@@ -220,8 +219,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         painter.setPen(QPen(QColor(color), 0))
         painter.setBrush(QColor(color))
         painter.translate(*self.getSquareCoords(col, row))
-        radius = (self.squareWidth() - 2) / 2
-        center = QPoint(radius, radius)
+        radius = (self.squareWidth() - 2) / 5
+        center = QPoint(self.squareWidth() // 2, self.squareHeight() // 2)
         painter.drawEllipse(center, radius, radius)
         painter.restore()
 
