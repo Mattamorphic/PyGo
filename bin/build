@@ -47,6 +47,8 @@ execute_step(["venv/bin/yapf", "-i", "-r", "app/", "--exclude=app/lib/*"], "Yapf
 print("-\t[Checking code using flake8]")
 execute_step(["venv/bin/flake8", "app/", "--exclude=app/lib/*"], "Flake 8 check failed")
 
+print("-\t[Running tests]")
+execute_step(["venv/bin/python3", "-m", "unittest", "discover", "-s", "app/tests"], "Tests Failed")
 
 print("-\t[Creating documentation]")
 execute_step(["venv/bin/pdoc3", "-o docs", "--html", "app", "--force"], "Pdoc generator failed")
