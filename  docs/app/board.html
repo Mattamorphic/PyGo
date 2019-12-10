@@ -31,13 +31,15 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
-# from .piece import Piece # TODO Uncomment when we start using this
+from .piece import Piece
+from .game_logic import GameLogic
 
 
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
     clickLocationSignal = pyqtSignal(
         str)  # signal sent when there is a new click location
+    updateScoreSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -56,10 +58,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-        self.start()  # start the game which will start the timer
-        self.boardArray = [[0 for j in range(self.boardWidth)]
+
+        self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.gameLogic = GameLogic(self.boardArray)
         self.printBoardArray()
+        self.start()  # start the game which will start the timer
 
     def printBoardArray(self):
         &#39;&#39;&#39;
@@ -141,6 +145,16 @@ class Board(QFrame):  # base the board on a QFrame widget
         print(&#34;mousePressEvent() - &#34; + clickLoc)
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
+
+        provisionalBoard = self.boardArray
+        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        try:
+            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
+        except RuntimeError:
+            print(&#34;Suicide rule in effect, try again&#34;)
+
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        self.update()
         print(f&#34;Click in {col, row}&#34;)
         self.clickLocationSignal.emit(clickLoc)
 
@@ -180,6 +194,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             Args:
                 painter (QPainter): The painter to paint with
+
+                black and white squares being drawn on board
         &#39;&#39;&#39;
         for row in range(0, len(self.boardArray)):
             for col in range(0, len(self.boardArray[0])):
@@ -227,6 +243,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     def drawPiece(self, painter, col, row, color):
         &#39;&#39;&#39;
             Draw a piece at the given col, row
+            pen is doing the circle
+            brush is filling in the circle
 
             Args:
                 painter (QPainter): The painter
@@ -235,10 +253,11 @@ class Board(QFrame):  # base the board on a QFrame widget
                 color   (Qt.color): The color for the piece
         &#39;&#39;&#39;
         painter.save()
-        painter.setPen(QPen(QColor(color), 2))
+        painter.setPen(QPen(QColor(color), 0))
+        painter.setBrush(QColor(color))
         painter.translate(*self.getSquareCoords(col, row))
-        radius = (self.squareWidth() - 2) / 2
-        center = QPoint(radius, radius)
+        radius = (self.squareWidth() - 2) / 5
+        center = QPoint(self.squareWidth() // 2, self.squareHeight() // 2)
         painter.drawEllipse(center, radius, radius)
         painter.restore()
 
@@ -315,6 +334,7 @@ class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
     clickLocationSignal = pyqtSignal(
         str)  # signal sent when there is a new click location
+    updateScoreSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -333,10 +353,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-        self.start()  # start the game which will start the timer
-        self.boardArray = [[0 for j in range(self.boardWidth)]
+
+        self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.gameLogic = GameLogic(self.boardArray)
         self.printBoardArray()
+        self.start()  # start the game which will start the timer
 
     def printBoardArray(self):
         &#39;&#39;&#39;
@@ -418,6 +440,16 @@ class Board(QFrame):  # base the board on a QFrame widget
         print(&#34;mousePressEvent() - &#34; + clickLoc)
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
+
+        provisionalBoard = self.boardArray
+        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        try:
+            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
+        except RuntimeError:
+            print(&#34;Suicide rule in effect, try again&#34;)
+
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        self.update()
         print(f&#34;Click in {col, row}&#34;)
         self.clickLocationSignal.emit(clickLoc)
 
@@ -457,6 +489,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             Args:
                 painter (QPainter): The painter to paint with
+
+                black and white squares being drawn on board
         &#39;&#39;&#39;
         for row in range(0, len(self.boardArray)):
             for col in range(0, len(self.boardArray[0])):
@@ -504,6 +538,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     def drawPiece(self, painter, col, row, color):
         &#39;&#39;&#39;
             Draw a piece at the given col, row
+            pen is doing the circle
+            brush is filling in the circle
 
             Args:
                 painter (QPainter): The painter
@@ -512,10 +548,11 @@ class Board(QFrame):  # base the board on a QFrame widget
                 color   (Qt.color): The color for the piece
         &#39;&#39;&#39;
         painter.save()
-        painter.setPen(QPen(QColor(color), 2))
+        painter.setPen(QPen(QColor(color), 0))
+        painter.setBrush(QColor(color))
         painter.translate(*self.getSquareCoords(col, row))
-        radius = (self.squareWidth() - 2) / 2
-        center = QPoint(radius, radius)
+        radius = (self.squareWidth() - 2) / 5
+        center = QPoint(self.squareWidth() // 2, self.squareHeight() // 2)
         painter.drawEllipse(center, radius, radius)
         painter.restore()
 
@@ -774,7 +811,9 @@ The row to draw at</p></section>
 <span>def <span class="ident">drawPiece</span></span>(<span>self, painter, col, row, color)</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Draw a piece at the given col, row</p>
+<section class="desc"><p>Draw a piece at the given col, row
+pen is doing the circle
+brush is filling in the circle</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
@@ -795,6 +834,8 @@ color
 <pre><code class="python">def drawPiece(self, painter, col, row, color):
     &#39;&#39;&#39;
         Draw a piece at the given col, row
+        pen is doing the circle
+        brush is filling in the circle
 
         Args:
             painter (QPainter): The painter
@@ -803,10 +844,11 @@ color
             color   (Qt.color): The color for the piece
     &#39;&#39;&#39;
     painter.save()
-    painter.setPen(QPen(QColor(color), 2))
+    painter.setPen(QPen(QColor(color), 0))
+    painter.setBrush(QColor(color))
     painter.translate(*self.getSquareCoords(col, row))
-    radius = (self.squareWidth() - 2) / 2
-    center = QPoint(radius, radius)
+    radius = (self.squareWidth() - 2) / 5
+    center = QPoint(self.squareWidth() // 2, self.squareHeight() // 2)
     painter.drawEllipse(center, radius, radius)
     painter.restore()</code></pre>
 </details>
@@ -820,7 +862,8 @@ color
 <dl>
 <dt><strong><code>painter</code></strong> :&ensp;<code>QPainter</code></dt>
 <dd>The painter to paint with</dd>
-</dl></section>
+</dl>
+<p>black and white squares being drawn on board</p></section>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -831,6 +874,8 @@ color
 
         Args:
             painter (QPainter): The painter to paint with
+
+            black and white squares being drawn on board
     &#39;&#39;&#39;
     for row in range(0, len(self.boardArray)):
         for col in range(0, len(self.boardArray[0])):
@@ -1007,10 +1052,12 @@ The row to draw at</p></section>
     &#39;&#39;&#39;
     self.timer = QBasicTimer()  # create a timer for the game
     self.isStarted = False  # game is not currently started
-    self.start()  # start the game which will start the timer
-    self.boardArray = [[0 for j in range(self.boardWidth)]
+
+    self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                        for i in range(self.boardHeight)]
-    self.printBoardArray()</code></pre>
+    self.gameLogic = GameLogic(self.boardArray)
+    self.printBoardArray()
+    self.start()  # start the game which will start the timer</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.mousePressEvent"><code class="name flex">
@@ -1039,6 +1086,16 @@ The row to draw at</p></section>
     print(&#34;mousePressEvent() - &#34; + clickLoc)
     # TODO you could call some game logic here
     row, col = self.getSquareRowCol(event.x(), event.y())
+
+    provisionalBoard = self.boardArray
+    provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+    try:
+        self.boardArray = self.gameLogic.updateBoard(self.boardArray)
+    except RuntimeError:
+        print(&#34;Suicide rule in effect, try again&#34;)
+
+    self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+    self.update()
     print(f&#34;Click in {col, row}&#34;)
     self.clickLocationSignal.emit(clickLoc)</code></pre>
 </details>
@@ -1235,6 +1292,12 @@ Based on the timerSpeed variable.</p>
     pass</code></pre>
 </details>
 </dd>
+<dt id="app.board.Board.updateScoreSignal"><code class="name flex">
+<span>def <span class="ident">updateScoreSignal</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
 <dt id="app.board.Board.updateTimerSignal"><code class="name flex">
 <span>def <span class="ident">updateTimerSignal</span></span>(<span>...)</span>
 </code></dt>
@@ -1287,6 +1350,7 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.timerEvent" href="#app.board.Board.timerEvent">timerEvent</a></code></li>
 <li><code><a title="app.board.Board.timerSpeed" href="#app.board.Board.timerSpeed">timerSpeed</a></code></li>
 <li><code><a title="app.board.Board.tryMove" href="#app.board.Board.tryMove">tryMove</a></code></li>
+<li><code><a title="app.board.Board.updateScoreSignal" href="#app.board.Board.updateScoreSignal">updateScoreSignal</a></code></li>
 <li><code><a title="app.board.Board.updateTimerSignal" href="#app.board.Board.updateTimerSignal">updateTimerSignal</a></code></li>
 </ul>
 </li>

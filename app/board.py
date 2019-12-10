@@ -4,12 +4,15 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
-# from .piece import Piece # TODO Uncomment when we start using this
+from .piece import Piece
+from .game_logic import GameLogic
 
 
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(str)  # signal sent when there is a new click location
+    clickLocationSignal = pyqtSignal(
+        str)  # signal sent when there is a new click location
+    updateScoreSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -28,10 +31,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-        self.start()  # start the game which will start the timer
-        self.boardArray = [[0 for j in range(self.boardWidth)]
+
+        self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.gameLogic = GameLogic(self.boardArray)
         self.printBoardArray()
+        self.start()  # start the game which will start the timer
 
     def printBoardArray(self):
         '''
@@ -113,13 +118,18 @@ class Board(QFrame):  # base the board on a QFrame widget
         print("mousePressEvent() - " + clickLoc)
         # TODO you could call some game logic here
         row, col = self.getSquareRowCol(event.x(), event.y())
-        self.boardArray[row][col] = 1
+
+        provisionalBoard = self.boardArray
+        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        try:
+            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
+        except RuntimeError:
+            print("Suicide rule in effect, try again")
+
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
         self.update()
         print(f"Click in {col, row}")
         self.clickLocationSignal.emit(clickLoc)
-
-
-
 
     def resetGame(self):
         '''

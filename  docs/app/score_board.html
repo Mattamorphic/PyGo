@@ -31,6 +31,7 @@
 # TODO import additional Widget classes as desired
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtCore import pyqtSlot
+from .piece import Piece
 
 
 class ScoreBoard(QDockWidget):
@@ -53,9 +54,13 @@ class ScoreBoard(QDockWidget):
         self.mainLayout = QVBoxLayout()
 
         # create two labels which will be updated by signals
+        self.playerA = QLabel(&#34;Player White: 0&#34;)
+        self.playerB = QLabel(&#34;Player Black: 0&#34;)
         self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
         self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
         self.mainWidget.setLayout(self.mainLayout)
+        self.mainLayout.addWidget(self.playerA)
+        self.mainLayout.addWidget(self.playerB)
         self.mainLayout.addWidget(self.label_clickLocation)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
@@ -81,6 +86,7 @@ class ScoreBoard(QDockWidget):
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
+        board.updateScoreSignal.connect(self.updateScore)
 
     # Ensure the slot is receiving an argument of the type &#39;str&#39;
     @pyqtSlot(str)
@@ -106,7 +112,12 @@ class ScoreBoard(QDockWidget):
         update = &#34;Time Remaining:&#34; + str(timeRemainng)
         self.label_timeRemaining.setText(update)
         # print(&#39;slot &#39; + update)
-        # self.redraw()</code></pre>
+        # self.redraw()
+
+    @pyqtSlot(object)
+    def updateScore(self, players):
+        self.playerA.setText(f&#34;Player A: {players[Piece.White].score}&#34;)
+        self.playerB.setText(f&#34;Player B: {players[Piece.Black].score}&#34;)</code></pre>
 </details>
 </section>
 <section>
@@ -147,9 +158,13 @@ class ScoreBoard(QDockWidget):
         self.mainLayout = QVBoxLayout()
 
         # create two labels which will be updated by signals
+        self.playerA = QLabel(&#34;Player White: 0&#34;)
+        self.playerB = QLabel(&#34;Player Black: 0&#34;)
         self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
         self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
         self.mainWidget.setLayout(self.mainLayout)
+        self.mainLayout.addWidget(self.playerA)
+        self.mainLayout.addWidget(self.playerB)
         self.mainLayout.addWidget(self.label_clickLocation)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
@@ -175,6 +190,7 @@ class ScoreBoard(QDockWidget):
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
+        board.updateScoreSignal.connect(self.updateScore)
 
     # Ensure the slot is receiving an argument of the type &#39;str&#39;
     @pyqtSlot(str)
@@ -198,7 +214,14 @@ class ScoreBoard(QDockWidget):
                 timeRemainng (Int): Time remaining
         &#39;&#39;&#39;
         update = &#34;Time Remaining:&#34; + str(timeRemainng)
-        self.label_timeRemaining.setText(update)</code></pre>
+        self.label_timeRemaining.setText(update)
+        # print(&#39;slot &#39; + update)
+        # self.redraw()
+
+    @pyqtSlot(object)
+    def updateScore(self, players):
+        self.playerA.setText(f&#34;Player A: {players[Piece.White].score}&#34;)
+        self.playerB.setText(f&#34;Player B: {players[Piece.Black].score}&#34;)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -250,9 +273,13 @@ you do not need to implement this method</p></section>
     self.mainLayout = QVBoxLayout()
 
     # create two labels which will be updated by signals
+    self.playerA = QLabel(&#34;Player White: 0&#34;)
+    self.playerB = QLabel(&#34;Player Black: 0&#34;)
     self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
     self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
     self.mainWidget.setLayout(self.mainLayout)
+    self.mainLayout.addWidget(self.playerA)
+    self.mainLayout.addWidget(self.playerB)
     self.mainLayout.addWidget(self.label_clickLocation)
     self.mainLayout.addWidget(self.label_timeRemaining)
     self.setWidget(self.mainWidget)
@@ -285,7 +312,8 @@ you do not need to implement this method</p></section>
     board.clickLocationSignal.connect(self.setClickLocation)
     # when the updateTimerSignal is emitted in the board
     # the setTimeRemaining slot receives it
-    board.updateTimerSignal.connect(self.setTimeRemaining)</code></pre>
+    board.updateTimerSignal.connect(self.setTimeRemaining)
+    board.updateScoreSignal.connect(self.updateScore)</code></pre>
 </details>
 </dd>
 <dt id="app.score_board.ScoreBoard.setClickLocation"><code class="name flex">
@@ -340,6 +368,21 @@ def setTimeRemaining(self, timeRemainng):
     self.label_timeRemaining.setText(update)</code></pre>
 </details>
 </dd>
+<dt id="app.score_board.ScoreBoard.updateScore"><code class="name flex">
+<span>def <span class="ident">updateScore</span></span>(<span>self, players)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@pyqtSlot(object)
+def updateScore(self, players):
+    self.playerA.setText(f&#34;Player A: {players[Piece.White].score}&#34;)
+    self.playerB.setText(f&#34;Player B: {players[Piece.Black].score}&#34;)</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -360,12 +403,13 @@ def setTimeRemaining(self, timeRemainng):
 <ul>
 <li>
 <h4><code><a title="app.score_board.ScoreBoard" href="#app.score_board.ScoreBoard">ScoreBoard</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="app.score_board.ScoreBoard.center" href="#app.score_board.ScoreBoard.center">center</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.initUI" href="#app.score_board.ScoreBoard.initUI">initUI</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.makeConnection" href="#app.score_board.ScoreBoard.makeConnection">makeConnection</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.setClickLocation" href="#app.score_board.ScoreBoard.setClickLocation">setClickLocation</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.setTimeRemaining" href="#app.score_board.ScoreBoard.setTimeRemaining">setTimeRemaining</a></code></li>
+<li><code><a title="app.score_board.ScoreBoard.updateScore" href="#app.score_board.ScoreBoard.updateScore">updateScore</a></code></li>
 </ul>
 </li>
 </ul>
