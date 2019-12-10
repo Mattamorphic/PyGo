@@ -28,7 +28,7 @@
 <pre><code class="python">&#39;&#39;&#39;
     Core Go Application
 &#39;&#39;&#39;
-from PyQt5.QtWidgets import QMainWindow, QDesktopWidget
+from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QToolBar
 from PyQt5.QtCore import Qt
 from .board import Board
 from .score_board import ScoreBoard
@@ -70,10 +70,12 @@ class Go(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.scoreBoard)
         self.scoreBoard.makeConnection(self.board)
 
-        self.resize(800, 800)
+        self.resize(1000, 800)
         self.center()
-        self.setWindowTitle(&#39;Go&#39;)
+        # self.setWindowTitle(&#39;Go&#39;)
         self.show()
+        self.toolbar = QToolBar()
+        self.addToolBar(Qt.TopToolBarArea, self.toolbar)
 
     def center(self):
         &#39;&#39;&#39;
@@ -139,10 +141,12 @@ class Go(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.scoreBoard)
         self.scoreBoard.makeConnection(self.board)
 
-        self.resize(800, 800)
+        self.resize(1000, 800)
         self.center()
-        self.setWindowTitle(&#39;Go&#39;)
+        # self.setWindowTitle(&#39;Go&#39;)
         self.show()
+        self.toolbar = QToolBar()
+        self.addToolBar(Qt.TopToolBarArea, self.toolbar)
 
     def center(self):
         &#39;&#39;&#39;
@@ -250,10 +254,12 @@ class Go(QMainWindow):
     self.addDockWidget(Qt.RightDockWidgetArea, self.scoreBoard)
     self.scoreBoard.makeConnection(self.board)
 
-    self.resize(800, 800)
+    self.resize(1000, 800)
     self.center()
-    self.setWindowTitle(&#39;Go&#39;)
-    self.show()</code></pre>
+    # self.setWindowTitle(&#39;Go&#39;)
+    self.show()
+    self.toolbar = QToolBar()
+    self.addToolBar(Qt.TopToolBarArea, self.toolbar)</code></pre>
 </details>
 </dd>
 </dl>

@@ -28,11 +28,233 @@
 <pre><code class="python">&#39;&#39;&#39;
     Handles the game logic
 &#39;&#39;&#39;
+from .piece import Piece
 
 
 class GameLogic:
-    print(&#34;Game Logic Object Created&#34;)
-    # TODO add code here to manage the logic of your game</code></pre>
+    def __init__(self, board):
+        self.board = board
+        self.height, self.width = len(board) - 1, len(board[0]) - 1
+
+        self.players = {
+            Piece.White: Player(&#34;White&#34;),
+            Piece.Black: Player(&#34;Black&#34;)
+        }
+        self.currentPlayer = Piece.White
+        self.otherPlayer = Piece.Black
+
+    def getCurrentPlayer(self):
+        &#39;&#39;&#39;
+            Returns the current player
+
+            Returns:
+                Player
+        &#39;&#39;&#39;
+        return self.currentPlayer
+
+    def getPlayers(self):
+        &#39;&#39;&#39;
+            Returns the players
+
+            Returns:
+                dict
+        &#39;&#39;&#39;
+        return self.players
+
+    def reset(self):
+        &#39;&#39;&#39;
+            Reset the players
+        &#39;&#39;&#39;
+        for colour, player in self.players.items():
+            player.reset()
+
+    def updateBoard(self, board):
+        &#39;&#39;&#39;
+            Update the board
+
+            Args:
+                board (list): Update the board
+        &#39;&#39;&#39;
+        # Get the current count of player pieces on the board
+        playerPieceCountBeforeGo = len(self.getPositions(self.currentPlayer))
+
+        # Make a backup of the board
+        currentBoard = self.board
+
+        # Set our new board
+        self.board = board
+
+        # Scan the board for pieces and dead pieces
+        playerScore, opponentRemovedPieces = self.scanBoard(
+            self.currentPlayer, self.otherPlayer)
+
+        opponentScore, playerRemovedPieces = self.scanBoard(
+            self.otherPlayer, self.currentPlayer)
+
+        for row, col in opponentRemovedPieces + playerRemovedPieces:
+            self.board[row][col] = Piece.NoPiece
+
+        playerPieceCountAfterGo = len(self.getPositions(self.currentPlayer))
+        # Check to see if this was a runtime error
+        if playerPieceCountAfterGo &lt;= playerPieceCountBeforeGo:
+            self.board = currentBoard
+            raise RuntimeError(&#34;Suicide rule&#34;)
+
+        self.players[self.currentPlayer].setScore(playerScore)
+        self.players[self.otherPlayer].setScore(opponentScore)
+        (self.currentPlayer,
+         self.otherPlayer) = self.otherPlayer, self.currentPlayer
+        return self.board
+
+    def getBoard(self):
+        return self.board
+
+    def getPositions(self, opponent):
+        &#39;&#39;&#39;
+            Get the opponents to check
+
+            Returns:
+                List
+        &#39;&#39;&#39;
+        opponentsToCheck = []
+        for row in range(0, self.height + 1):
+            for col in range(0, self.width + 1):
+                if self.board[row][col] == opponent:
+                    opponentsToCheck.append((row, col))
+        return opponentsToCheck
+
+    def getAdjacents(self, row, col):
+        &#39;&#39;&#39;
+            Get the adjacent pieces as a list (if they are valid)
+
+            Args:
+                row         (int): The current row
+                col         (int): The current col
+
+            Returns:
+                List
+        &#39;&#39;&#39;
+        return [
+            adjacent
+            for adjacent in [(row, col - 1) if col &gt; 0 else None, (
+                row - 1, col) if row &gt; 0 else None, (
+                    row + 1, col) if row &lt; self.height else None, (
+                        row, col + 1) if col &lt; self.width else None]
+            if adjacent
+        ]
+
+    def scanBoard(self, player, opponent):
+        &#39;&#39;&#39;
+            Scan the board and determine the current score for the player
+
+            Returns:
+                int
+        &#39;&#39;&#39;
+        # Find all of the opponent positions on the board and iterate
+        deadPieces = []
+        opponentPositions = self.getPositions(opponent)
+        if not opponentPositions:
+            return 0, []
+        checked = []
+        score = 0
+        for i, opponentPosition in enumerate(opponentPositions):
+            if opponentPosition in checked:
+                continue
+            checked.append(opponentPosition)
+            opponentGroup = [opponentPosition]
+            adjacentSpots = []
+            group = [opponentPosition]
+            # while we have pieces in the opponent group
+            while opponentGroup:
+                position = opponentGroup.pop()
+                # let&#39;s keep looking for adjacents
+                # for each of the adjacent positions
+                for adjacent in self.getAdjacents(*position):
+                    if (
+                            # If it&#39;s already been added into the bucket
+                            adjacent in opponentGroup
+                            # If it&#39;s already an adjacent
+                            or adjacent in adjacentSpots
+                            # if it&#39;s been checked previously
+                            or adjacent in checked):
+                        continue
+                    # if this doesn&#39;t include the player,
+                    # store this in the bucket (if we don&#39;t have it)
+                    if self.hasSpecificPiece(opponent, *adjacent):
+                        opponentGroup.append(adjacent)
+                        group.append(adjacent)
+                        checked.append(adjacent)
+                    else:
+                        adjacentSpots.append(adjacent)
+            if self.areAdjacentsCovered(player, adjacentSpots):
+                score += len(group)
+                deadPieces += group
+
+        return score, deadPieces
+
+    def areAdjacentsCovered(self, player, adjacents):
+        &#39;&#39;&#39;
+            Determine if all the adjacetns are covered
+
+            Args:
+                piece       (int):  The piece to check
+                adjacents   (list): The adjacents to check
+
+            Returns:
+                bool
+        &#39;&#39;&#39;
+        for adjacent in adjacents:
+            if not self.hasSpecificPiece(player, *adjacent):
+                return False
+        return True
+
+    def hasSpecificPiece(self, piece, row, col):
+        &#39;&#39;&#39;
+            Check if a specific piece is at the position on the board
+
+            Args:
+                piece   (int): The piece to check
+                row     (int): The row on the board
+                col     (int): The col on the board
+
+            Returns:
+                bool
+        &#39;&#39;&#39;
+        try:
+            return self.board[row][col] == piece
+        except IndexError:
+            print(row, col)
+            raise IndexError(&#34;list index out of range&#34;)
+
+    @staticmethod
+    def testLogic():
+        board = [[0, 0, 0, 1, 2, 1, 0], [0, 0, 0, 0, 1, 0, 0],
+                 [0, 0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0]]
+
+        logic = GameLogic(board)
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
+        # blackScore = logic.scanBoard(Piece.Black, Piece.White)
+        # print(f&#34;Black: {blackScore}&#34;)
+        whiteScore = logic.scanBoard(Piece.White, Piece.Black)
+        print(f&#34;White: {whiteScore}&#34;)
+
+
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.score = 0
+
+    def setScore(self, score):
+        self.score = score
+
+    def getScore(self):
+        return self.score
+
+    def reset(self):
+        self.score = 0</code></pre>
 </details>
 </section>
 <section>
@@ -46,7 +268,7 @@ class GameLogic:
 <dl>
 <dt id="app.game_logic.GameLogic"><code class="flex name class">
 <span>class <span class="ident">GameLogic</span></span>
-<span>(</span><span>*args, **kwargs)</span>
+<span>(</span><span>board)</span>
 </code></dt>
 <dd>
 <section class="desc"></section>
@@ -55,8 +277,654 @@ class GameLogic:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class GameLogic:
-    print(&#34;Game Logic Object Created&#34;)</code></pre>
+    def __init__(self, board):
+        self.board = board
+        self.height, self.width = len(board) - 1, len(board[0]) - 1
+
+        self.players = {
+            Piece.White: Player(&#34;White&#34;),
+            Piece.Black: Player(&#34;Black&#34;)
+        }
+        self.currentPlayer = Piece.White
+        self.otherPlayer = Piece.Black
+
+    def getCurrentPlayer(self):
+        &#39;&#39;&#39;
+            Returns the current player
+
+            Returns:
+                Player
+        &#39;&#39;&#39;
+        return self.currentPlayer
+
+    def getPlayers(self):
+        &#39;&#39;&#39;
+            Returns the players
+
+            Returns:
+                dict
+        &#39;&#39;&#39;
+        return self.players
+
+    def reset(self):
+        &#39;&#39;&#39;
+            Reset the players
+        &#39;&#39;&#39;
+        for colour, player in self.players.items():
+            player.reset()
+
+    def updateBoard(self, board):
+        &#39;&#39;&#39;
+            Update the board
+
+            Args:
+                board (list): Update the board
+        &#39;&#39;&#39;
+        # Get the current count of player pieces on the board
+        playerPieceCountBeforeGo = len(self.getPositions(self.currentPlayer))
+
+        # Make a backup of the board
+        currentBoard = self.board
+
+        # Set our new board
+        self.board = board
+
+        # Scan the board for pieces and dead pieces
+        playerScore, opponentRemovedPieces = self.scanBoard(
+            self.currentPlayer, self.otherPlayer)
+
+        opponentScore, playerRemovedPieces = self.scanBoard(
+            self.otherPlayer, self.currentPlayer)
+
+        for row, col in opponentRemovedPieces + playerRemovedPieces:
+            self.board[row][col] = Piece.NoPiece
+
+        playerPieceCountAfterGo = len(self.getPositions(self.currentPlayer))
+        # Check to see if this was a runtime error
+        if playerPieceCountAfterGo &lt;= playerPieceCountBeforeGo:
+            self.board = currentBoard
+            raise RuntimeError(&#34;Suicide rule&#34;)
+
+        self.players[self.currentPlayer].setScore(playerScore)
+        self.players[self.otherPlayer].setScore(opponentScore)
+        (self.currentPlayer,
+         self.otherPlayer) = self.otherPlayer, self.currentPlayer
+        return self.board
+
+    def getBoard(self):
+        return self.board
+
+    def getPositions(self, opponent):
+        &#39;&#39;&#39;
+            Get the opponents to check
+
+            Returns:
+                List
+        &#39;&#39;&#39;
+        opponentsToCheck = []
+        for row in range(0, self.height + 1):
+            for col in range(0, self.width + 1):
+                if self.board[row][col] == opponent:
+                    opponentsToCheck.append((row, col))
+        return opponentsToCheck
+
+    def getAdjacents(self, row, col):
+        &#39;&#39;&#39;
+            Get the adjacent pieces as a list (if they are valid)
+
+            Args:
+                row         (int): The current row
+                col         (int): The current col
+
+            Returns:
+                List
+        &#39;&#39;&#39;
+        return [
+            adjacent
+            for adjacent in [(row, col - 1) if col &gt; 0 else None, (
+                row - 1, col) if row &gt; 0 else None, (
+                    row + 1, col) if row &lt; self.height else None, (
+                        row, col + 1) if col &lt; self.width else None]
+            if adjacent
+        ]
+
+    def scanBoard(self, player, opponent):
+        &#39;&#39;&#39;
+            Scan the board and determine the current score for the player
+
+            Returns:
+                int
+        &#39;&#39;&#39;
+        # Find all of the opponent positions on the board and iterate
+        deadPieces = []
+        opponentPositions = self.getPositions(opponent)
+        if not opponentPositions:
+            return 0, []
+        checked = []
+        score = 0
+        for i, opponentPosition in enumerate(opponentPositions):
+            if opponentPosition in checked:
+                continue
+            checked.append(opponentPosition)
+            opponentGroup = [opponentPosition]
+            adjacentSpots = []
+            group = [opponentPosition]
+            # while we have pieces in the opponent group
+            while opponentGroup:
+                position = opponentGroup.pop()
+                # let&#39;s keep looking for adjacents
+                # for each of the adjacent positions
+                for adjacent in self.getAdjacents(*position):
+                    if (
+                            # If it&#39;s already been added into the bucket
+                            adjacent in opponentGroup
+                            # If it&#39;s already an adjacent
+                            or adjacent in adjacentSpots
+                            # if it&#39;s been checked previously
+                            or adjacent in checked):
+                        continue
+                    # if this doesn&#39;t include the player,
+                    # store this in the bucket (if we don&#39;t have it)
+                    if self.hasSpecificPiece(opponent, *adjacent):
+                        opponentGroup.append(adjacent)
+                        group.append(adjacent)
+                        checked.append(adjacent)
+                    else:
+                        adjacentSpots.append(adjacent)
+            if self.areAdjacentsCovered(player, adjacentSpots):
+                score += len(group)
+                deadPieces += group
+
+        return score, deadPieces
+
+    def areAdjacentsCovered(self, player, adjacents):
+        &#39;&#39;&#39;
+            Determine if all the adjacetns are covered
+
+            Args:
+                piece       (int):  The piece to check
+                adjacents   (list): The adjacents to check
+
+            Returns:
+                bool
+        &#39;&#39;&#39;
+        for adjacent in adjacents:
+            if not self.hasSpecificPiece(player, *adjacent):
+                return False
+        return True
+
+    def hasSpecificPiece(self, piece, row, col):
+        &#39;&#39;&#39;
+            Check if a specific piece is at the position on the board
+
+            Args:
+                piece   (int): The piece to check
+                row     (int): The row on the board
+                col     (int): The col on the board
+
+            Returns:
+                bool
+        &#39;&#39;&#39;
+        try:
+            return self.board[row][col] == piece
+        except IndexError:
+            print(row, col)
+            raise IndexError(&#34;list index out of range&#34;)
+
+    @staticmethod
+    def testLogic():
+        board = [[0, 0, 0, 1, 2, 1, 0], [0, 0, 0, 0, 1, 0, 0],
+                 [0, 0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0]]
+
+        logic = GameLogic(board)
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
+        # blackScore = logic.scanBoard(Piece.Black, Piece.White)
+        # print(f&#34;Black: {blackScore}&#34;)
+        whiteScore = logic.scanBoard(Piece.White, Piece.Black)
+        print(f&#34;White: {whiteScore}&#34;)</code></pre>
 </details>
+<h3>Static methods</h3>
+<dl>
+<dt id="app.game_logic.GameLogic.testLogic"><code class="name flex">
+<span>def <span class="ident">testLogic</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def testLogic():
+    board = [[0, 0, 0, 1, 2, 1, 0], [0, 0, 0, 0, 1, 0, 0],
+             [0, 0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0]]
+
+    logic = GameLogic(board)
+    print(&#39;\n&#39;.join(
+        [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
+    # blackScore = logic.scanBoard(Piece.Black, Piece.White)
+    # print(f&#34;Black: {blackScore}&#34;)
+    whiteScore = logic.scanBoard(Piece.White, Piece.Black)
+    print(f&#34;White: {whiteScore}&#34;)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="app.game_logic.GameLogic.areAdjacentsCovered"><code class="name flex">
+<span>def <span class="ident">areAdjacentsCovered</span></span>(<span>self, player, adjacents)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Determine if all the adjacetns are covered</p>
+<h2 id="args">Args</h2>
+<p>piece
+(int):
+The piece to check
+adjacents
+(list): The adjacents to check</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>bool</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def areAdjacentsCovered(self, player, adjacents):
+    &#39;&#39;&#39;
+        Determine if all the adjacetns are covered
+
+        Args:
+            piece       (int):  The piece to check
+            adjacents   (list): The adjacents to check
+
+        Returns:
+            bool
+    &#39;&#39;&#39;
+    for adjacent in adjacents:
+        if not self.hasSpecificPiece(player, *adjacent):
+            return False
+    return True</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getAdjacents"><code class="name flex">
+<span>def <span class="ident">getAdjacents</span></span>(<span>self, row, col)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get the adjacent pieces as a list (if they are valid)</p>
+<h2 id="args">Args</h2>
+<p>row
+(int): The current row
+col
+(int): The current col</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getAdjacents(self, row, col):
+    &#39;&#39;&#39;
+        Get the adjacent pieces as a list (if they are valid)
+
+        Args:
+            row         (int): The current row
+            col         (int): The current col
+
+        Returns:
+            List
+    &#39;&#39;&#39;
+    return [
+        adjacent
+        for adjacent in [(row, col - 1) if col &gt; 0 else None, (
+            row - 1, col) if row &gt; 0 else None, (
+                row + 1, col) if row &lt; self.height else None, (
+                    row, col + 1) if col &lt; self.width else None]
+        if adjacent
+    ]</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getBoard"><code class="name flex">
+<span>def <span class="ident">getBoard</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getBoard(self):
+    return self.board</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getCurrentPlayer"><code class="name flex">
+<span>def <span class="ident">getCurrentPlayer</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Returns the current player</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><a title="app.game_logic.Player" href="#app.game_logic.Player"><code>Player</code></a></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getCurrentPlayer(self):
+    &#39;&#39;&#39;
+        Returns the current player
+
+        Returns:
+            Player
+    &#39;&#39;&#39;
+    return self.currentPlayer</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getPlayers"><code class="name flex">
+<span>def <span class="ident">getPlayers</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Returns the players</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getPlayers(self):
+    &#39;&#39;&#39;
+        Returns the players
+
+        Returns:
+            dict
+    &#39;&#39;&#39;
+    return self.players</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getPositions"><code class="name flex">
+<span>def <span class="ident">getPositions</span></span>(<span>self, opponent)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get the opponents to check</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getPositions(self, opponent):
+    &#39;&#39;&#39;
+        Get the opponents to check
+
+        Returns:
+            List
+    &#39;&#39;&#39;
+    opponentsToCheck = []
+    for row in range(0, self.height + 1):
+        for col in range(0, self.width + 1):
+            if self.board[row][col] == opponent:
+                opponentsToCheck.append((row, col))
+    return opponentsToCheck</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.hasSpecificPiece"><code class="name flex">
+<span>def <span class="ident">hasSpecificPiece</span></span>(<span>self, piece, row, col)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Check if a specific piece is at the position on the board</p>
+<h2 id="args">Args</h2>
+<p>piece
+(int): The piece to check
+row
+(int): The row on the board
+col
+(int): The col on the board</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>bool</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def hasSpecificPiece(self, piece, row, col):
+    &#39;&#39;&#39;
+        Check if a specific piece is at the position on the board
+
+        Args:
+            piece   (int): The piece to check
+            row     (int): The row on the board
+            col     (int): The col on the board
+
+        Returns:
+            bool
+    &#39;&#39;&#39;
+    try:
+        return self.board[row][col] == piece
+    except IndexError:
+        print(row, col)
+        raise IndexError(&#34;list index out of range&#34;)</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.reset"><code class="name flex">
+<span>def <span class="ident">reset</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Reset the players</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset(self):
+    &#39;&#39;&#39;
+        Reset the players
+    &#39;&#39;&#39;
+    for colour, player in self.players.items():
+        player.reset()</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.scanBoard"><code class="name flex">
+<span>def <span class="ident">scanBoard</span></span>(<span>self, player, opponent)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Scan the board and determine the current score for the player</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>int</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def scanBoard(self, player, opponent):
+    &#39;&#39;&#39;
+        Scan the board and determine the current score for the player
+
+        Returns:
+            int
+    &#39;&#39;&#39;
+    # Find all of the opponent positions on the board and iterate
+    deadPieces = []
+    opponentPositions = self.getPositions(opponent)
+    if not opponentPositions:
+        return 0, []
+    checked = []
+    score = 0
+    for i, opponentPosition in enumerate(opponentPositions):
+        if opponentPosition in checked:
+            continue
+        checked.append(opponentPosition)
+        opponentGroup = [opponentPosition]
+        adjacentSpots = []
+        group = [opponentPosition]
+        # while we have pieces in the opponent group
+        while opponentGroup:
+            position = opponentGroup.pop()
+            # let&#39;s keep looking for adjacents
+            # for each of the adjacent positions
+            for adjacent in self.getAdjacents(*position):
+                if (
+                        # If it&#39;s already been added into the bucket
+                        adjacent in opponentGroup
+                        # If it&#39;s already an adjacent
+                        or adjacent in adjacentSpots
+                        # if it&#39;s been checked previously
+                        or adjacent in checked):
+                    continue
+                # if this doesn&#39;t include the player,
+                # store this in the bucket (if we don&#39;t have it)
+                if self.hasSpecificPiece(opponent, *adjacent):
+                    opponentGroup.append(adjacent)
+                    group.append(adjacent)
+                    checked.append(adjacent)
+                else:
+                    adjacentSpots.append(adjacent)
+        if self.areAdjacentsCovered(player, adjacentSpots):
+            score += len(group)
+            deadPieces += group
+
+    return score, deadPieces</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.updateBoard"><code class="name flex">
+<span>def <span class="ident">updateBoard</span></span>(<span>self, board)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Update the board</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>board</code></strong> :&ensp;<code>list</code></dt>
+<dd>Update the board</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def updateBoard(self, board):
+    &#39;&#39;&#39;
+        Update the board
+
+        Args:
+            board (list): Update the board
+    &#39;&#39;&#39;
+    # Get the current count of player pieces on the board
+    playerPieceCountBeforeGo = len(self.getPositions(self.currentPlayer))
+
+    # Make a backup of the board
+    currentBoard = self.board
+
+    # Set our new board
+    self.board = board
+
+    # Scan the board for pieces and dead pieces
+    playerScore, opponentRemovedPieces = self.scanBoard(
+        self.currentPlayer, self.otherPlayer)
+
+    opponentScore, playerRemovedPieces = self.scanBoard(
+        self.otherPlayer, self.currentPlayer)
+
+    for row, col in opponentRemovedPieces + playerRemovedPieces:
+        self.board[row][col] = Piece.NoPiece
+
+    playerPieceCountAfterGo = len(self.getPositions(self.currentPlayer))
+    # Check to see if this was a runtime error
+    if playerPieceCountAfterGo &lt;= playerPieceCountBeforeGo:
+        self.board = currentBoard
+        raise RuntimeError(&#34;Suicide rule&#34;)
+
+    self.players[self.currentPlayer].setScore(playerScore)
+    self.players[self.otherPlayer].setScore(opponentScore)
+    (self.currentPlayer,
+     self.otherPlayer) = self.otherPlayer, self.currentPlayer
+    return self.board</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="app.game_logic.Player"><code class="flex name class">
+<span>class <span class="ident">Player</span></span>
+<span>(</span><span>name)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Player:
+    def __init__(self, name):
+        self.name = name
+        self.score = 0
+
+    def setScore(self, score):
+        self.score = score
+
+    def getScore(self):
+        return self.score
+
+    def reset(self):
+        self.score = 0</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="app.game_logic.Player.getScore"><code class="name flex">
+<span>def <span class="ident">getScore</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getScore(self):
+    return self.score</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.Player.reset"><code class="name flex">
+<span>def <span class="ident">reset</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset(self):
+    self.score = 0</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.Player.setScore"><code class="name flex">
+<span>def <span class="ident">setScore</span></span>(<span>self, score)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setScore(self, score):
+    self.score = score</code></pre>
+</details>
+</dd>
+</dl>
 </dd>
 </dl>
 </section>
@@ -76,6 +944,27 @@ class GameLogic:
 <ul>
 <li>
 <h4><code><a title="app.game_logic.GameLogic" href="#app.game_logic.GameLogic">GameLogic</a></code></h4>
+<ul class="two-column">
+<li><code><a title="app.game_logic.GameLogic.areAdjacentsCovered" href="#app.game_logic.GameLogic.areAdjacentsCovered">areAdjacentsCovered</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getAdjacents" href="#app.game_logic.GameLogic.getAdjacents">getAdjacents</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getBoard" href="#app.game_logic.GameLogic.getBoard">getBoard</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getCurrentPlayer" href="#app.game_logic.GameLogic.getCurrentPlayer">getCurrentPlayer</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getPlayers" href="#app.game_logic.GameLogic.getPlayers">getPlayers</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getPositions" href="#app.game_logic.GameLogic.getPositions">getPositions</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.hasSpecificPiece" href="#app.game_logic.GameLogic.hasSpecificPiece">hasSpecificPiece</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.reset" href="#app.game_logic.GameLogic.reset">reset</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.scanBoard" href="#app.game_logic.GameLogic.scanBoard">scanBoard</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.testLogic" href="#app.game_logic.GameLogic.testLogic">testLogic</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.updateBoard" href="#app.game_logic.GameLogic.updateBoard">updateBoard</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="app.game_logic.Player" href="#app.game_logic.Player">Player</a></code></h4>
+<ul class="">
+<li><code><a title="app.game_logic.Player.getScore" href="#app.game_logic.Player.getScore">getScore</a></code></li>
+<li><code><a title="app.game_logic.Player.reset" href="#app.game_logic.Player.reset">reset</a></code></li>
+<li><code><a title="app.game_logic.Player.setScore" href="#app.game_logic.Player.setScore">setScore</a></code></li>
+</ul>
 </li>
 </ul>
 </li>

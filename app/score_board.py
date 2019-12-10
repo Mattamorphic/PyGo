@@ -4,6 +4,7 @@
 # TODO import additional Widget classes as desired
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtCore import pyqtSlot
+from .piece import Piece
 
 
 class ScoreBoard(QDockWidget):
@@ -26,9 +27,13 @@ class ScoreBoard(QDockWidget):
         self.mainLayout = QVBoxLayout()
 
         # create two labels which will be updated by signals
+        self.playerA = QLabel("Player White: 0")
+        self.playerB = QLabel("Player Black: 0")
         self.label_clickLocation = QLabel("Click Location: ")
         self.label_timeRemaining = QLabel("Time remaining: ")
         self.mainWidget.setLayout(self.mainLayout)
+        self.mainLayout.addWidget(self.playerA)
+        self.mainLayout.addWidget(self.playerB)
         self.mainLayout.addWidget(self.label_clickLocation)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
@@ -54,6 +59,7 @@ class ScoreBoard(QDockWidget):
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
+        board.updateScoreSignal.connect(self.updateScore)
 
     # Ensure the slot is receiving an argument of the type 'str'
     @pyqtSlot(str)
@@ -80,3 +86,8 @@ class ScoreBoard(QDockWidget):
         self.label_timeRemaining.setText(update)
         # print('slot ' + update)
         # self.redraw()
+
+    @pyqtSlot(object)
+    def updateScore(self, players):
+        self.playerA.setText(f"Player A: {players[Piece.White].score}")
+        self.playerB.setText(f"Player B: {players[Piece.Black].score}")
