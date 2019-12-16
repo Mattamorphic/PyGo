@@ -56,12 +56,10 @@ class ScoreBoard(QDockWidget):
         # create two labels which will be updated by signals
         self.playerA = QLabel(&#34;Player White: 0&#34;)
         self.playerB = QLabel(&#34;Player Black: 0&#34;)
-        self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
         self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
         self.mainWidget.setLayout(self.mainLayout)
         self.mainLayout.addWidget(self.playerA)
         self.mainLayout.addWidget(self.playerB)
-        self.mainLayout.addWidget(self.label_clickLocation)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
         self.show()
@@ -80,25 +78,10 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         &#39;&#39;&#39;
-        # when the clickLocationSignal is emitted in board
-        # the setClickLocation slot receives it
-        board.clickLocationSignal.connect(self.setClickLocation)
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
         board.updateScoreSignal.connect(self.updateScore)
-
-    # Ensure the slot is receiving an argument of the type &#39;str&#39;
-    @pyqtSlot(str)
-    def setClickLocation(self, clickLoc):
-        &#39;&#39;&#39;
-            Updates the label to show the click location
-
-            Args:
-                clickLoc (str): The location of the click
-        &#39;&#39;&#39;
-        self.label_clickLocation.setText(&#34;Click Location:&#34; + clickLoc)
-        print(&#39;slot &#39; + clickLoc)
 
     # Ensure the slot is receiving an argument of the type &#39;int&#39;
     @pyqtSlot(int)
@@ -160,12 +143,10 @@ class ScoreBoard(QDockWidget):
         # create two labels which will be updated by signals
         self.playerA = QLabel(&#34;Player White: 0&#34;)
         self.playerB = QLabel(&#34;Player Black: 0&#34;)
-        self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
         self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
         self.mainWidget.setLayout(self.mainLayout)
         self.mainLayout.addWidget(self.playerA)
         self.mainLayout.addWidget(self.playerB)
-        self.mainLayout.addWidget(self.label_clickLocation)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
         self.show()
@@ -184,25 +165,10 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         &#39;&#39;&#39;
-        # when the clickLocationSignal is emitted in board
-        # the setClickLocation slot receives it
-        board.clickLocationSignal.connect(self.setClickLocation)
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
         board.updateScoreSignal.connect(self.updateScore)
-
-    # Ensure the slot is receiving an argument of the type &#39;str&#39;
-    @pyqtSlot(str)
-    def setClickLocation(self, clickLoc):
-        &#39;&#39;&#39;
-            Updates the label to show the click location
-
-            Args:
-                clickLoc (str): The location of the click
-        &#39;&#39;&#39;
-        self.label_clickLocation.setText(&#34;Click Location:&#34; + clickLoc)
-        print(&#39;slot &#39; + clickLoc)
 
     # Ensure the slot is receiving an argument of the type &#39;int&#39;
     @pyqtSlot(int)
@@ -275,12 +241,10 @@ you do not need to implement this method</p></section>
     # create two labels which will be updated by signals
     self.playerA = QLabel(&#34;Player White: 0&#34;)
     self.playerB = QLabel(&#34;Player Black: 0&#34;)
-    self.label_clickLocation = QLabel(&#34;Click Location: &#34;)
     self.label_timeRemaining = QLabel(&#34;Time remaining: &#34;)
     self.mainWidget.setLayout(self.mainLayout)
     self.mainLayout.addWidget(self.playerA)
     self.mainLayout.addWidget(self.playerB)
-    self.mainLayout.addWidget(self.label_clickLocation)
     self.mainLayout.addWidget(self.label_timeRemaining)
     self.setWidget(self.mainWidget)
     self.show()</code></pre>
@@ -307,39 +271,10 @@ you do not need to implement this method</p></section>
         Args:
             board (Board): The board
     &#39;&#39;&#39;
-    # when the clickLocationSignal is emitted in board
-    # the setClickLocation slot receives it
-    board.clickLocationSignal.connect(self.setClickLocation)
     # when the updateTimerSignal is emitted in the board
     # the setTimeRemaining slot receives it
     board.updateTimerSignal.connect(self.setTimeRemaining)
     board.updateScoreSignal.connect(self.updateScore)</code></pre>
-</details>
-</dd>
-<dt id="app.score_board.ScoreBoard.setClickLocation"><code class="name flex">
-<span>def <span class="ident">setClickLocation</span></span>(<span>self, clickLoc)</span>
-</code></dt>
-<dd>
-<section class="desc"><p>Updates the label to show the click location</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>clickLoc</code></strong> :&ensp;<code>str</code></dt>
-<dd>The location of the click</dd>
-</dl></section>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@pyqtSlot(str)
-def setClickLocation(self, clickLoc):
-    &#39;&#39;&#39;
-        Updates the label to show the click location
-
-        Args:
-            clickLoc (str): The location of the click
-    &#39;&#39;&#39;
-    self.label_clickLocation.setText(&#34;Click Location:&#34; + clickLoc)
-    print(&#39;slot &#39; + clickLoc)</code></pre>
 </details>
 </dd>
 <dt id="app.score_board.ScoreBoard.setTimeRemaining"><code class="name flex">
@@ -403,11 +338,10 @@ def updateScore(self, players):
 <ul>
 <li>
 <h4><code><a title="app.score_board.ScoreBoard" href="#app.score_board.ScoreBoard">ScoreBoard</a></code></h4>
-<ul class="two-column">
+<ul class="">
 <li><code><a title="app.score_board.ScoreBoard.center" href="#app.score_board.ScoreBoard.center">center</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.initUI" href="#app.score_board.ScoreBoard.initUI">initUI</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.makeConnection" href="#app.score_board.ScoreBoard.makeConnection">makeConnection</a></code></li>
-<li><code><a title="app.score_board.ScoreBoard.setClickLocation" href="#app.score_board.ScoreBoard.setClickLocation">setClickLocation</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.setTimeRemaining" href="#app.score_board.ScoreBoard.setTimeRemaining">setTimeRemaining</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.updateScore" href="#app.score_board.ScoreBoard.updateScore">updateScore</a></code></li>
 </ul>

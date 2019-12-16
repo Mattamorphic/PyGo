@@ -5,14 +5,13 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
 from .piece import Piece
-from .game_logic import GameLogic
+from .game_logic import GameLogic, KOError, SuicideError, OccupiedError
 
 
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
     updateScoreSignal = pyqtSignal(object)
+    updateLogicSignal = pyqtSignal(str)
 
     boardWidth = 7
     boardHeight = 7
@@ -20,6 +19,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     counter = 10  # the number the counter will count down from
 
     checkColours = [(255, 235, 205), (205, 133, 63)]
+
+    previousBoards = []
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -31,21 +32,19 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.previousBoards.append(self.boardArray)
         self.gameLogic = GameLogic(self.boardArray)
-        self.printBoardArray()
         self.start()  # start the game which will start the timer
 
-    def printBoardArray(self):
+    def printBoardArray(self, board):
         '''
             Pretty prints the boardArray to the terminal
         '''
         print("boardArray:")
-        print('\n'.join([
-            '\t'.join([str(cell) for cell in row]) for row in self.boardArray
-        ]))
+        print('\n'.join(
+            ['\t'.join([str(cell) for cell in row]) for row in board]))
 
     def squareWidth(self):
         '''
@@ -95,7 +94,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event=None):
         '''
             Paints the board and the pieces of the game
 
@@ -113,23 +112,21 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The mouse press event
         '''
-        clickLoc = "click location [" + str(event.x()) + "," + str(
-            event.y()) + "]"  # the location where a mouse click was registered
-        print("mousePressEvent() - " + clickLoc)
-        # TODO you could call some game logic here
+        # Get the current row/col where this click occured
         row, col = self.getSquareRowCol(event.x(), event.y())
-
-        provisionalBoard = self.boardArray
-        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
         try:
-            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-        except RuntimeError:
-            print("Suicide rule in effect, try again")
+            self.gameLogic.updateBoard(row, col)
+        except KOError:
+            self.updateLogicSignal.emit(f"KO, try again ({row, col})")
+        except SuicideError:
+            self.updateLogicSignal.emit(f"Suicide, try again ({row, col})")
+        except OccupiedError:
+            self.updateLogicSignal.emit(f"Occupied, try again ({row, col})")
+        finally:
+            self.boardArray = self.gameLogic.board
 
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
         self.update()
-        print(f"Click in {col, row}")
-        self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
         '''

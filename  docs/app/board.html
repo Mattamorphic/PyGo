@@ -32,13 +32,11 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
 from .piece import Piece
-from .game_logic import GameLogic
+from .game_logic import GameLogic, KOError, SuicideError
 
 
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
     updateScoreSignal = pyqtSignal(object)
 
     boardWidth = 7
@@ -47,6 +45,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     counter = 10  # the number the counter will count down from
 
     checkColours = [(255, 235, 205), (205, 133, 63)]
+
+    previousBoards = []
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -58,21 +58,19 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.previousBoards.append(self.boardArray)
         self.gameLogic = GameLogic(self.boardArray)
-        self.printBoardArray()
         self.start()  # start the game which will start the timer
 
-    def printBoardArray(self):
+    def printBoardArray(self, board):
         &#39;&#39;&#39;
             Pretty prints the boardArray to the terminal
         &#39;&#39;&#39;
         print(&#34;boardArray:&#34;)
-        print(&#39;\n&#39;.join([
-            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-        ]))
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -122,7 +120,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event=None):
         &#39;&#39;&#39;
             Paints the board and the pieces of the game
 
@@ -140,23 +138,19 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The mouse press event
         &#39;&#39;&#39;
-        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-        print(&#34;mousePressEvent() - &#34; + clickLoc)
-        # TODO you could call some game logic here
-        row, col = self.getSquareRowCol(event.x(), event.y())
-
-        provisionalBoard = self.boardArray
-        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        # Get the current row/col where this click occured
         try:
-            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-        except RuntimeError:
-            print(&#34;Suicide rule in effect, try again&#34;)
+            self.gameLogic.updateBoard(
+                *self.getSquareRowCol(event.x(), event.y()))
+        except KOError:
+            pass
+        except SuicideError:
+            pass
+        finally:
+            self.boardArray = self.gameLogic.board
 
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
         self.update()
-        print(f&#34;Click in {col, row}&#34;)
-        self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
         &#39;&#39;&#39;
@@ -332,8 +326,6 @@ class Board(QFrame):  # base the board on a QFrame widget
 </summary>
 <pre><code class="python">class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
     updateScoreSignal = pyqtSignal(object)
 
     boardWidth = 7
@@ -342,6 +334,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     counter = 10  # the number the counter will count down from
 
     checkColours = [(255, 235, 205), (205, 133, 63)]
+
+    previousBoards = []
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -353,21 +347,19 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.timer = QBasicTimer()  # create a timer for the game
         self.isStarted = False  # game is not currently started
-
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        self.previousBoards.append(self.boardArray)
         self.gameLogic = GameLogic(self.boardArray)
-        self.printBoardArray()
         self.start()  # start the game which will start the timer
 
-    def printBoardArray(self):
+    def printBoardArray(self, board):
         &#39;&#39;&#39;
             Pretty prints the boardArray to the terminal
         &#39;&#39;&#39;
         print(&#34;boardArray:&#34;)
-        print(&#39;\n&#39;.join([
-            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-        ]))
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -417,7 +409,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event=None):
         &#39;&#39;&#39;
             Paints the board and the pieces of the game
 
@@ -435,23 +427,19 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The mouse press event
         &#39;&#39;&#39;
-        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-        print(&#34;mousePressEvent() - &#34; + clickLoc)
-        # TODO you could call some game logic here
-        row, col = self.getSquareRowCol(event.x(), event.y())
-
-        provisionalBoard = self.boardArray
-        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        # Get the current row/col where this click occured
         try:
-            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-        except RuntimeError:
-            print(&#34;Suicide rule in effect, try again&#34;)
+            self.gameLogic.updateBoard(
+                *self.getSquareRowCol(event.x(), event.y()))
+        except KOError:
+            pass
+        except SuicideError:
+            pass
+        finally:
+            self.boardArray = self.gameLogic.board
 
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
         self.update()
-        print(f&#34;Click in {col, row}&#34;)
-        self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
         &#39;&#39;&#39;
@@ -685,6 +673,12 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 4
 </code></pre></section>
 </dd>
+<dt id="app.board.Board.previousBoards"><code class="name">var <span class="ident">previousBoards</span></code></dt>
+<dd>
+<section class="desc"><p>Built-in mutable sequence.</p>
+<p>If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.</p></section>
+</dd>
 <dt id="app.board.Board.timerSpeed"><code class="name">var <span class="ident">timerSpeed</span></code></dt>
 <dd>
 <section class="desc"><p>int([x]) -&gt; integer
@@ -709,12 +703,6 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="app.board.Board.clickLocationSignal"><code class="name flex">
-<span>def <span class="ident">clickLocationSignal</span></span>(<span>...)</span>
-</code></dt>
-<dd>
-<section class="desc"></section>
-</dd>
 <dt id="app.board.Board.drawBlackPiece"><code class="name flex">
 <span>def <span class="ident">drawBlackPiece</span></span>(<span>self, painter, col, row)</span>
 </code></dt>
@@ -1052,11 +1040,10 @@ The row to draw at</p></section>
     &#39;&#39;&#39;
     self.timer = QBasicTimer()  # create a timer for the game
     self.isStarted = False  # game is not currently started
-
     self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                        for i in range(self.boardHeight)]
+    self.previousBoards.append(self.boardArray)
     self.gameLogic = GameLogic(self.boardArray)
-    self.printBoardArray()
     self.start()  # start the game which will start the timer</code></pre>
 </details>
 </dd>
@@ -1081,27 +1068,23 @@ The row to draw at</p></section>
         Args:
             event (Event): The mouse press event
     &#39;&#39;&#39;
-    clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-        event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-    print(&#34;mousePressEvent() - &#34; + clickLoc)
-    # TODO you could call some game logic here
-    row, col = self.getSquareRowCol(event.x(), event.y())
-
-    provisionalBoard = self.boardArray
-    provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+    # Get the current row/col where this click occured
     try:
-        self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-    except RuntimeError:
-        print(&#34;Suicide rule in effect, try again&#34;)
+        self.gameLogic.updateBoard(
+            *self.getSquareRowCol(event.x(), event.y()))
+    except KOError:
+        pass
+    except SuicideError:
+        pass
+    finally:
+        self.boardArray = self.gameLogic.board
 
     self.updateScoreSignal.emit(self.gameLogic.getPlayers())
-    self.update()
-    print(f&#34;Click in {col, row}&#34;)
-    self.clickLocationSignal.emit(clickLoc)</code></pre>
+    self.update()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.paintEvent"><code class="name flex">
-<span>def <span class="ident">paintEvent</span></span>(<span>self, event)</span>
+<span>def <span class="ident">paintEvent</span></span>(<span>self, event=None)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Paints the board and the pieces of the game</p>
@@ -1114,7 +1097,7 @@ The row to draw at</p></section>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def paintEvent(self, event):
+<pre><code class="python">def paintEvent(self, event=None):
     &#39;&#39;&#39;
         Paints the board and the pieces of the game
 
@@ -1127,7 +1110,7 @@ The row to draw at</p></section>
 </details>
 </dd>
 <dt id="app.board.Board.printBoardArray"><code class="name flex">
-<span>def <span class="ident">printBoardArray</span></span>(<span>self)</span>
+<span>def <span class="ident">printBoardArray</span></span>(<span>self, board)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Pretty prints the boardArray to the terminal</p></section>
@@ -1135,14 +1118,13 @@ The row to draw at</p></section>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def printBoardArray(self):
+<pre><code class="python">def printBoardArray(self, board):
     &#39;&#39;&#39;
         Pretty prints the boardArray to the terminal
     &#39;&#39;&#39;
     print(&#34;boardArray:&#34;)
-    print(&#39;\n&#39;.join([
-        &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-    ]))</code></pre>
+    print(&#39;\n&#39;.join(
+        [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.resetGame"><code class="name flex">
@@ -1328,7 +1310,6 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.boardHeight" href="#app.board.Board.boardHeight">boardHeight</a></code></li>
 <li><code><a title="app.board.Board.boardWidth" href="#app.board.Board.boardWidth">boardWidth</a></code></li>
 <li><code><a title="app.board.Board.checkColours" href="#app.board.Board.checkColours">checkColours</a></code></li>
-<li><code><a title="app.board.Board.clickLocationSignal" href="#app.board.Board.clickLocationSignal">clickLocationSignal</a></code></li>
 <li><code><a title="app.board.Board.counter" href="#app.board.Board.counter">counter</a></code></li>
 <li><code><a title="app.board.Board.drawBlackPiece" href="#app.board.Board.drawBlackPiece">drawBlackPiece</a></code></li>
 <li><code><a title="app.board.Board.drawBoardSquares" href="#app.board.Board.drawBoardSquares">drawBoardSquares</a></code></li>
@@ -1342,6 +1323,7 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.initBoard" href="#app.board.Board.initBoard">initBoard</a></code></li>
 <li><code><a title="app.board.Board.mousePressEvent" href="#app.board.Board.mousePressEvent">mousePressEvent</a></code></li>
 <li><code><a title="app.board.Board.paintEvent" href="#app.board.Board.paintEvent">paintEvent</a></code></li>
+<li><code><a title="app.board.Board.previousBoards" href="#app.board.Board.previousBoards">previousBoards</a></code></li>
 <li><code><a title="app.board.Board.printBoardArray" href="#app.board.Board.printBoardArray">printBoardArray</a></code></li>
 <li><code><a title="app.board.Board.resetGame" href="#app.board.Board.resetGame">resetGame</a></code></li>
 <li><code><a title="app.board.Board.squareHeight" href="#app.board.Board.squareHeight">squareHeight</a></code></li>

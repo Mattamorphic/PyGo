@@ -29,12 +29,12 @@ class ScoreBoard(QDockWidget):
         # create two labels which will be updated by signals
         self.playerA = QLabel("Player White: 0")
         self.playerB = QLabel("Player Black: 0")
-        self.label_clickLocation = QLabel("Click Location: ")
         self.label_timeRemaining = QLabel("Time remaining: ")
+        self.logicMessage = QLabel("Take your turn")
         self.mainWidget.setLayout(self.mainLayout)
         self.mainLayout.addWidget(self.playerA)
         self.mainLayout.addWidget(self.playerB)
-        self.mainLayout.addWidget(self.label_clickLocation)
+        self.mainLayout.addWidget(self.logicMessage)
         self.mainLayout.addWidget(self.label_timeRemaining)
         self.setWidget(self.mainWidget)
         self.show()
@@ -53,25 +53,11 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         '''
-        # when the clickLocationSignal is emitted in board
-        # the setClickLocation slot receives it
-        board.clickLocationSignal.connect(self.setClickLocation)
         # when the updateTimerSignal is emitted in the board
         # the setTimeRemaining slot receives it
         board.updateTimerSignal.connect(self.setTimeRemaining)
         board.updateScoreSignal.connect(self.updateScore)
-
-    # Ensure the slot is receiving an argument of the type 'str'
-    @pyqtSlot(str)
-    def setClickLocation(self, clickLoc):
-        '''
-            Updates the label to show the click location
-
-            Args:
-                clickLoc (str): The location of the click
-        '''
-        self.label_clickLocation.setText("Click Location:" + clickLoc)
-        print('slot ' + clickLoc)
+        board.updateLogicSignal.connect(self.updateLogicMessage)
 
     # Ensure the slot is receiving an argument of the type 'int'
     @pyqtSlot(int)
@@ -91,3 +77,7 @@ class ScoreBoard(QDockWidget):
     def updateScore(self, players):
         self.playerA.setText(f"Player A: {players[Piece.White].score}")
         self.playerB.setText(f"Player B: {players[Piece.Black].score}")
+
+    @pyqtSlot(str)
+    def updateLogicMessage(self, message):
+        self.logicMessage.setText(message)

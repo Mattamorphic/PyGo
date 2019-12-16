@@ -5,82 +5,159 @@ from .piece import Piece
 
 
 class GameLogic:
+    '''
+        GameLogic controls the scoring and rules of the game
+
+        Args:
+            board (list): The board matrix
+
+    '''
     def __init__(self, board):
-        self.board = board
-        self.height, self.width = len(board) - 1, len(board[0]) - 1
+        if not board:
+            raise ValueError(
+                "Board must be a list of lists of equal dimensions")
+        self.startingBoard = board
+        self.reset()
 
-        self.players = {
-            Piece.White: Player("White"),
-            Piece.Black: Player("Black")
-        }
-        self.currentPlayer = Piece.White
-        self.otherPlayer = Piece.Black
-
-    def getCurrentPlayer(self):
+    def getplayer(self):
         '''
             Returns the current player
 
             Returns:
                 Player
         '''
-        return self.currentPlayer
+        return self.player
 
     def getPlayers(self):
         '''
             Returns the players
 
             Returns:
-                dict
+                Dict
         '''
         return self.players
 
     def reset(self):
         '''
-            Reset the players
+            Reset the game
         '''
-        for colour, player in self.players.items():
-            player.reset()
+        self.board = self.startingBoard
+        self.height, self.width = len(self.startingBoard) - 1, len(
+            self.startingBoard[0]) - 1
+        self.previousBoards = []
+        self.players = {
+            Piece.White: Player("White"),
+            Piece.Black: Player("Black")
+        }
+        self.player = Piece.White
+        self.opponent = Piece.Black
 
-    def updateBoard(self, board):
+    def updateBoard(self, row, col):
         '''
             Update the board
 
             Args:
                 board (list): Update the board
+
+            Returns:
+                List
         '''
-        # Get the current count of player pieces on the board
-        playerPieceCountBeforeGo = len(self.getPositions(self.currentPlayer))
-
-        # Make a backup of the board
-        currentBoard = self.board
-
-        # Set our new board
-        self.board = board
-
+        # is this space occupied?
+        if self.board[row][col] == self.opponent:
+            raise OccupiedError()
+        # Update the board, and store a copy of the original
+        self.previousBoards.append([list(row) for row in self.board])
+        self.board[row][col] = self.player
         # Scan the board for pieces and dead pieces
-        _, opponentRemovedPieces = self.scanBoard(self.currentPlayer,
-                                                  self.otherPlayer)
-        _, playerRemovedPieces = self.scanBoard(self.otherPlayer,
-                                                self.currentPlayer)
+        for row, col in self.getRemovedPieces(self.player, self.opponent):
+            self.board[row][col] = Piece.NoPiece
+        # Board backup
+        if self.isKoRule():
+            self.board = self.previousBoards.pop()
+            raise KOError()
 
-        playerScore, _ = self.scanBoard(self.currentPlayer, 0)
-        opponentScore, _ = self.scanBoard(self.otherPlayer, 0)
-
-        for row, col in opponentRemovedPieces + playerRemovedPieces:
+        for row, col in self.getRemovedPieces(self.opponent, self.player):
             self.board[row][col] = Piece.NoPiece
 
-        playerPieceCountAfterGo = len(self.getPositions(self.currentPlayer))
-        # Check to see if this was a runtime error
-        if playerPieceCountAfterGo < playerPieceCountBeforeGo:
-            raise RuntimeError("Suicide rule")
+        # Get the piece count after removing piecees
+        playerPieceCount = len(self.getPositions(self.player))
+        opponentPieceCount = len(self.getPositions(self.opponent))
 
-        self.players[self.currentPlayer].setScore(playerScore)
-        self.players[self.otherPlayer].setScore(opponentScore)
-        (self.currentPlayer,
-         self.otherPlayer) = self.otherPlayer, self.currentPlayer
+        # Check if the player has hit the suicide rule
+        if self.isSuicideRule(playerPieceCount):
+            self.board = self.previousBoards.pop()
+            raise SuicideError()
+
+        # Update the players
+        self.players[self.player].setPieces(playerPieceCount)
+        self.players[self.player].setScore(
+            self.getCapturedLandCount(self.player) + playerPieceCount)
+        self.players[self.opponent].setPieces(opponentPieceCount)
+        self.players[self.opponent].setScore(
+            self.getCapturedLandCount(self.opponent) + opponentPieceCount)
+
+        self.switchPlayers()
         return self.board
 
+    def isKoRule(self):
+        '''
+            Is the KO rule in effect
+
+            Returns:
+                Bool
+        '''
+        if len(self.previousBoards) < 2:
+            return False
+        return self.previousBoards[-2] == self.board
+
+    def isSuicideRule(self, newPieceCount):
+        '''
+            Is the suicide rule in effect
+
+            Returns:
+                Bool
+        '''
+        return self.players[self.player].getPieces() >= newPieceCount
+
+    def switchPlayers(self):
+        '''
+            Swap the players
+        '''
+        (self.player, self.opponent) = self.opponent, self.player
+
+    def getRemovedPieces(self, player, opponent):
+        '''
+            Find the taken pieces to remove
+
+            Args:
+                player     (Piece): The player
+                opponent   (Piece): The opponent
+
+            Returns:
+                List
+        '''
+        return self.scanBoard(player, opponent)
+
+    def getCapturedLandCount(self, player):
+        '''
+            Get the score for the player
+
+            Args:
+                player      (Piece): The player
+                pieceCount  (int):   The current pieces
+
+            Returns:
+                Int
+        '''
+        return len(self.scanBoard(player, Piece.NoPiece))
+
     def getBoard(self):
+        '''
+            Return the board
+
+            Returns:
+                List
+        '''
         return self.board
 
     def getPositions(self, opponent):
@@ -122,15 +199,14 @@ class GameLogic:
             Scan the board and determine the current score for the player
 
             Returns:
-                int
+                list
         '''
-        # Find all of the opponent positions on the board and iterate
+        # Pieces that will need removing
         deadPieces = []
         opponentPositions = self.getPositions(opponent)
         if not opponentPositions:
-            return 0, []
+            return []
         checked = []
-        score = 0
         for i, opponentPosition in enumerate(opponentPositions):
             if opponentPosition in checked:
                 continue
@@ -161,10 +237,9 @@ class GameLogic:
                     else:
                         adjacentSpots.append(adjacent)
             if self.areAdjacentsCovered(player, adjacentSpots):
-                score += len(group)
                 deadPieces += group
 
-        return score, deadPieces
+        return deadPieces
 
     def areAdjacentsCovered(self, player, adjacents):
         '''
@@ -200,32 +275,79 @@ class GameLogic:
             print(row, col)
             raise IndexError("list index out of range")
 
-    @staticmethod
-    def testLogic():
-        board = [[0, 0, 0, 1, 2, 1, 0], [0, 0, 0, 0, 1, 0, 0],
-                 [0, 0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0]]
-
-        logic = GameLogic(board)
-        print('\n'.join(
-            ['\t'.join([str(cell) for cell in row]) for row in board]))
-        # blackScore = logic.scanBoard(Piece.Black, Piece.White)
-        # print(f"Black: {blackScore}")
-        whiteScore = logic.scanBoard(Piece.White, Piece.Black)
-        print(f"White: {whiteScore}")
-
 
 class Player:
+    '''
+        Represent a player
+
+        Args:
+            name (str): The name for the player
+    '''
     def __init__(self, name):
         self.name = name
         self.score = 0
+        self.pieces = 0
 
     def setScore(self, score):
+        '''
+            Setter for the score attribute
+
+            Args:
+                score (int): The new score
+        '''
         self.score = score
 
+    def setPieces(self, pieces):
+        '''
+            Setter for the piece count attribute
+
+            Args:
+                pieces (int): The new pieces
+        '''
+        self.pieces = pieces
+
     def getScore(self):
+        '''
+            Getter for the score attribute
+
+            Returns:
+                Int
+        '''
         return self.score
 
+    def getPieces(self):
+        '''
+            Getter for the pieces count attribute
+
+            Returns:
+                Int
+        '''
+        return self.pieces
+
     def reset(self):
+        '''
+            Reset the attributes
+        '''
         self.score = 0
+        self.pieces = 0
+
+
+class KOError(Exception):
+    '''
+        Custom exception class for KOError
+    '''
+    pass
+
+
+class SuicideError(Exception):
+    '''
+        Custom exception class for SuicideError
+    '''
+    pass
+
+
+class OccupiedError(Exception):
+    '''
+        Custom exception class for OccupiedError
+    '''
+    pass
