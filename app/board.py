@@ -174,6 +174,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         # Redraw the GUI
         self.update()
 
+    def undo(self):
+        '''
+            Undo last turn
+        '''
+        print("Not implemented")
+
     def skip(self):
         '''
             Handle skip / passes
