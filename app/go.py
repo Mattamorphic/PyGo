@@ -90,6 +90,12 @@ class Go(QMainWindow):
         undo.clicked.connect(self.board.undo)
         self.toolbar.addWidget(undo)
 
+
+        # Menu
+
+        ## TODO: Add menu with help option, displays rules of GO in dialog
+        ## TODO: Add menu options to reset game
+
         # Connect any signals from the board to helper methods
         self.makeConnection()
 
@@ -160,8 +166,12 @@ class Go(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Game Over"))
 
+        # Display winner
+        ## TODO: Add winner info
+
         # Create a button holder for the dialog
         buttonBox = QDialogButtonBox(Qt.Vertical)
+
 
         # Add some options
         buttonBox.addButton("&Restart", QDialogButtonBox.AcceptRole)

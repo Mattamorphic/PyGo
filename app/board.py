@@ -179,6 +179,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
             Undo last turn
         '''
+        # TODO implement undo
         print("Not implemented")
 
     def skip(self):
