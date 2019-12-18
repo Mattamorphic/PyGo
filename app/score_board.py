@@ -2,7 +2,7 @@
     Represents the Score Board
 '''
 # TODO import additional Widget classes as desired
-from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget, QLabel
+from PyQt5.QtWidgets import (QDockWidget, QVBoxLayout, QWidget, QLabel)
 from PyQt5.QtCore import pyqtSlot
 from .piece import Piece
 
@@ -27,15 +27,25 @@ class ScoreBoard(QDockWidget):
         self.mainLayout = QVBoxLayout()
 
         # create two labels which will be updated by signals
-        self.playerA = QLabel("Player White: 0")
-        self.playerB = QLabel("Player Black: 0")
-        self.label_timeRemaining = QLabel("Time remaining: ")
+        self.players = {
+            Piece.White: {
+                "scoreLabel": QLabel("White: 0"),
+                "timeLabel": QLabel("White Time Remaining: 120"),
+                "score": 0
+            },
+            Piece.Black: {
+                "scoreLabel": QLabel("Black: 0"),
+                "timeLabel": QLabel("Black Time Remaining: 120"),
+                "score": 0
+            }
+        }
         self.logicMessage = QLabel("Take your turn")
         self.mainWidget.setLayout(self.mainLayout)
-        self.mainLayout.addWidget(self.playerA)
-        self.mainLayout.addWidget(self.playerB)
+        for id, player in self.players.items():
+            self.mainLayout.addWidget(player["scoreLabel"])
+            self.mainLayout.addWidget(player["timeLabel"])
         self.mainLayout.addWidget(self.logicMessage)
-        self.mainLayout.addWidget(self.label_timeRemaining)
+
         self.setWidget(self.mainWidget)
         self.show()
 
@@ -53,30 +63,30 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         '''
-        # when the updateTimerSignal is emitted in the board
-        # the setTimeRemaining slot receives it
-        board.updateTimerSignal.connect(self.setTimeRemaining)
+        board.updatePlayersTimer.connect(self.updatePlayersTimer)
         board.updateScoreSignal.connect(self.updateScore)
         board.updateLogicSignal.connect(self.updateLogicMessage)
 
     # Ensure the slot is receiving an argument of the type 'int'
-    @pyqtSlot(int)
-    def setTimeRemaining(self, timeRemainng):
+    @pyqtSlot(object)
+    def updatePlayersTimer(self, players):
         '''
             Updates the time remaining label to show the time remaining
 
             Args:
-                timeRemainng (Int): Time remaining
+                players (Dict): Players
         '''
-        update = "Time Remaining:" + str(timeRemainng)
-        self.label_timeRemaining.setText(update)
-        # print('slot ' + update)
-        # self.redraw()
+        for id, player in players.items():
+            self.players[id]["timeLabel"].setText(
+                f"{player.getName()}: {player.getTimeRemaining()}")
 
     @pyqtSlot(object)
     def updateScore(self, players):
-        self.playerA.setText(f"Player A: {players[Piece.White].score}")
-        self.playerB.setText(f"Player B: {players[Piece.Black].score}")
+        for id, player in players.items():
+            score = player.getScore()
+            self.players[id]["scoreLabel"].setText(
+                f"{player.getName()}: {score}")
+            self.players[id]["score"] = score
 
     @pyqtSlot(str)
     def updateLogicMessage(self, message):

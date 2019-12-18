@@ -24,7 +24,8 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from app.game_logic import GameLogic, KOError, SuicideError, OccupiedError
+<pre><code class="python">from app.game_logic import (GameLogic, GameOverPassError, KOError,
+                            SuicideError, OccupiedError)
 from app.piece import Piece
 import unittest
 
@@ -33,12 +34,12 @@ class TestGameLogic(unittest.TestCase):
     def test_instantiation_of_game_logic_raises_error(self):
         with self.assertRaises(ValueError):
             gl = GameLogic([])
-            self.assertTrue(gl.getplayer() == Piece.White)
+            self.assertTrue(gl.player == Piece.White)
 
     def test_instantiation_of_game_logic(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
         gl = GameLogic(board)
-        self.assertTrue(gl.getplayer() == Piece.White)
+        self.assertTrue(gl.player == Piece.White)
 
     def test_get_opponent_positions_empty_board(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
@@ -95,7 +96,7 @@ class TestGameLogic(unittest.TestCase):
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertTrue(gl.hasSpecificPiece(gl.getplayer(), 0, 3))
+        self.assertTrue(gl.hasSpecificPiece(gl.player, 0, 3))
 
     def test_doesnt_have_specific_piece(self):
         board = [[0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
@@ -104,7 +105,7 @@ class TestGameLogic(unittest.TestCase):
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertFalse(gl.hasSpecificPiece(gl.getplayer(), 0, 2))
+        self.assertFalse(gl.hasSpecificPiece(gl.player, 0, 2))
 
     def test_has_adjacents_covered_single_group(self):
         board = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0],
@@ -227,7 +228,14 @@ class TestGameLogic(unittest.TestCase):
         gl = GameLogic(board)
         gl.updateBoard(0, 0)
         with self.assertRaises(OccupiedError):
-            gl.updateBoard(0, 0)</code></pre>
+            gl.updateBoard(0, 0)
+
+    def test_skip_limit(self):
+        board = [[0 for i in range(0, 7)] for j in range(0, 7)]
+        gl = GameLogic(board)
+        gl.skip()
+        with self.assertRaises(GameOverPassError):
+            gl.skip()</code></pre>
 </details>
 </section>
 <section>
@@ -280,12 +288,12 @@ not have a method with the specified name.</p></section>
     def test_instantiation_of_game_logic_raises_error(self):
         with self.assertRaises(ValueError):
             gl = GameLogic([])
-            self.assertTrue(gl.getplayer() == Piece.White)
+            self.assertTrue(gl.player == Piece.White)
 
     def test_instantiation_of_game_logic(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
         gl = GameLogic(board)
-        self.assertTrue(gl.getplayer() == Piece.White)
+        self.assertTrue(gl.player == Piece.White)
 
     def test_get_opponent_positions_empty_board(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
@@ -342,7 +350,7 @@ not have a method with the specified name.</p></section>
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertTrue(gl.hasSpecificPiece(gl.getplayer(), 0, 3))
+        self.assertTrue(gl.hasSpecificPiece(gl.player, 0, 3))
 
     def test_doesnt_have_specific_piece(self):
         board = [[0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
@@ -351,7 +359,7 @@ not have a method with the specified name.</p></section>
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertFalse(gl.hasSpecificPiece(gl.getplayer(), 0, 2))
+        self.assertFalse(gl.hasSpecificPiece(gl.player, 0, 2))
 
     def test_has_adjacents_covered_single_group(self):
         board = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0],
@@ -474,7 +482,14 @@ not have a method with the specified name.</p></section>
         gl = GameLogic(board)
         gl.updateBoard(0, 0)
         with self.assertRaises(OccupiedError):
-            gl.updateBoard(0, 0)</code></pre>
+            gl.updateBoard(0, 0)
+
+    def test_skip_limit(self):
+        board = [[0 for i in range(0, 7)] for j in range(0, 7)]
+        gl = GameLogic(board)
+        gl.skip()
+        with self.assertRaises(GameOverPassError):
+            gl.skip()</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -519,7 +534,7 @@ not have a method with the specified name.</p></section>
              [0, 0, 0, 0, 0, 0, 0]]
 
     gl = GameLogic(board)
-    self.assertFalse(gl.hasSpecificPiece(gl.getplayer(), 0, 2))</code></pre>
+    self.assertFalse(gl.hasSpecificPiece(gl.player, 0, 2))</code></pre>
 </details>
 </dd>
 <dt id="app.tests.test_game_logic.TestGameLogic.test_get_adjacents_middle_board"><code class="name flex">
@@ -669,7 +684,7 @@ not have a method with the specified name.</p></section>
              [0, 0, 0, 0, 0, 0, 0]]
 
     gl = GameLogic(board)
-    self.assertTrue(gl.hasSpecificPiece(gl.getplayer(), 0, 3))</code></pre>
+    self.assertTrue(gl.hasSpecificPiece(gl.player, 0, 3))</code></pre>
 </details>
 </dd>
 <dt id="app.tests.test_game_logic.TestGameLogic.test_instantiation_of_game_logic"><code class="name flex">
@@ -684,7 +699,7 @@ not have a method with the specified name.</p></section>
 <pre><code class="python">def test_instantiation_of_game_logic(self):
     board = [[0 for i in range(0, 7)] for j in range(0, 7)]
     gl = GameLogic(board)
-    self.assertTrue(gl.getplayer() == Piece.White)</code></pre>
+    self.assertTrue(gl.player == Piece.White)</code></pre>
 </details>
 </dd>
 <dt id="app.tests.test_game_logic.TestGameLogic.test_instantiation_of_game_logic_raises_error"><code class="name flex">
@@ -699,7 +714,7 @@ not have a method with the specified name.</p></section>
 <pre><code class="python">def test_instantiation_of_game_logic_raises_error(self):
     with self.assertRaises(ValueError):
         gl = GameLogic([])
-        self.assertTrue(gl.getplayer() == Piece.White)</code></pre>
+        self.assertTrue(gl.player == Piece.White)</code></pre>
 </details>
 </dd>
 <dt id="app.tests.test_game_logic.TestGameLogic.test_is_ko_rule"><code class="name flex">
@@ -854,6 +869,23 @@ not have a method with the specified name.</p></section>
     self.assertEqual(2, len(gl.scanBoard(gl.player, gl.opponent)))</code></pre>
 </details>
 </dd>
+<dt id="app.tests.test_game_logic.TestGameLogic.test_skip_limit"><code class="name flex">
+<span>def <span class="ident">test_skip_limit</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_skip_limit(self):
+    board = [[0 for i in range(0, 7)] for j in range(0, 7)]
+    gl = GameLogic(board)
+    gl.skip()
+    with self.assertRaises(GameOverPassError):
+        gl.skip()</code></pre>
+</details>
+</dd>
 <dt id="app.tests.test_game_logic.TestGameLogic.test_update_board_suicide_rule"><code class="name flex">
 <span>def <span class="ident">test_update_board_suicide_rule</span></span>(<span>self)</span>
 </code></dt>
@@ -920,6 +952,7 @@ not have a method with the specified name.</p></section>
 <li><code><a title="app.tests.test_game_logic.TestGameLogic.test_scan_board_score_multi_group_multi_position" href="#app.tests.test_game_logic.TestGameLogic.test_scan_board_score_multi_group_multi_position">test_scan_board_score_multi_group_multi_position</a></code></li>
 <li><code><a title="app.tests.test_game_logic.TestGameLogic.test_scan_board_score_single_group" href="#app.tests.test_game_logic.TestGameLogic.test_scan_board_score_single_group">test_scan_board_score_single_group</a></code></li>
 <li><code><a title="app.tests.test_game_logic.TestGameLogic.test_scan_board_score_single_group_multi_position" href="#app.tests.test_game_logic.TestGameLogic.test_scan_board_score_single_group_multi_position">test_scan_board_score_single_group_multi_position</a></code></li>
+<li><code><a title="app.tests.test_game_logic.TestGameLogic.test_skip_limit" href="#app.tests.test_game_logic.TestGameLogic.test_skip_limit">test_skip_limit</a></code></li>
 <li><code><a title="app.tests.test_game_logic.TestGameLogic.test_update_board_suicide_rule" href="#app.tests.test_game_logic.TestGameLogic.test_update_board_suicide_rule">test_update_board_suicide_rule</a></code></li>
 </ul>
 </li>

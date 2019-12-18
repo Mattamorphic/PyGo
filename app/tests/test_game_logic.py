@@ -1,4 +1,5 @@
-from app.game_logic import GameLogic, KOError, SuicideError, OccupiedError
+from app.game_logic import (GameLogic, GameOverPassError, KOError,
+                            SuicideError, OccupiedError)
 from app.piece import Piece
 import unittest
 
@@ -7,12 +8,12 @@ class TestGameLogic(unittest.TestCase):
     def test_instantiation_of_game_logic_raises_error(self):
         with self.assertRaises(ValueError):
             gl = GameLogic([])
-            self.assertTrue(gl.getplayer() == Piece.White)
+            self.assertTrue(gl.player == Piece.White)
 
     def test_instantiation_of_game_logic(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
         gl = GameLogic(board)
-        self.assertTrue(gl.getplayer() == Piece.White)
+        self.assertTrue(gl.player == Piece.White)
 
     def test_get_opponent_positions_empty_board(self):
         board = [[0 for i in range(0, 7)] for j in range(0, 7)]
@@ -69,7 +70,7 @@ class TestGameLogic(unittest.TestCase):
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertTrue(gl.hasSpecificPiece(gl.getplayer(), 0, 3))
+        self.assertTrue(gl.hasSpecificPiece(gl.player, 0, 3))
 
     def test_doesnt_have_specific_piece(self):
         board = [[0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
@@ -78,7 +79,7 @@ class TestGameLogic(unittest.TestCase):
                  [0, 0, 0, 0, 0, 0, 0]]
 
         gl = GameLogic(board)
-        self.assertFalse(gl.hasSpecificPiece(gl.getplayer(), 0, 2))
+        self.assertFalse(gl.hasSpecificPiece(gl.player, 0, 2))
 
     def test_has_adjacents_covered_single_group(self):
         board = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0],
@@ -202,3 +203,10 @@ class TestGameLogic(unittest.TestCase):
         gl.updateBoard(0, 0)
         with self.assertRaises(OccupiedError):
             gl.updateBoard(0, 0)
+
+    def test_skip_limit(self):
+        board = [[0 for i in range(0, 7)] for j in range(0, 7)]
+        gl = GameLogic(board)
+        gl.skip()
+        with self.assertRaises(GameOverPassError):
+            gl.skip()

@@ -5,22 +5,30 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
 from .piece import Piece
-from .game_logic import GameLogic, KOError, SuicideError, OccupiedError
+from .game_logic import (GameLogic, GameOverPassError, KOError, SuicideError,
+                         OccupiedError)
 
 
 class Board(QFrame):  # base the board on a QFrame widget
-    updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
+
+    # Signal for the player timer being updated by timerEvent
+    updatePlayersTimer = pyqtSignal(object)
+    # Signal for updating the score
     updateScoreSignal = pyqtSignal(object)
+    # Signal for if there is a logic error (KO/Suicide/Occupied)
     updateLogicSignal = pyqtSignal(str)
+    # Signal for for the current player
+    updateCurrentPlayerSignal = pyqtSignal(object)
+    # Signal for game over
+    updateGameOverSignal = pyqtSignal()
 
     boardWidth = 7
     boardHeight = 7
-    timerSpeed = 1  # the timer updates ever 1 second
-    counter = 10  # the number the counter will count down from
+    # Timer speed is denoted in milliseconds
+    timerSpeed = 1000
 
+    # Colours to denote checks each representing an RGB tuple
     checkColours = [(255, 235, 205), (205, 133, 63)]
-
-    previousBoards = []
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -30,17 +38,33 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
             Initiates the board
         '''
-        self.timer = QBasicTimer()  # create a timer for the game
-        self.isStarted = False  # game is not currently started
+        # Timer for tracking time
+        self.timer = QBasicTimer()
+        # Denotes if the game is underway
+        self.isStarted = False
+        # The initial board
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
-        self.previousBoards.append(self.boardArray)
+        # The gameLogic that controls play
         self.gameLogic = GameLogic(self.boardArray)
-        self.start()  # start the game which will start the timer
+        # Start the game
+        self.start()
+
+    def getCurrentPlayer(self):
+        '''
+            Helper method to fetch the current player from the logic instance
+
+            Returns:
+                Player
+        '''
+        return self.gameLogic.getPlayers()[self.gameLogic.player]
 
     def printBoardArray(self, board):
         '''
             Pretty prints the boardArray to the terminal
+
+            Args:
+                board (list): A board
         '''
         print("boardArray:")
         print('\n'.join(
@@ -70,9 +94,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
         self.isStarted = True  # determines if the game has started to TRUE
         self.resetGame()  # reset the game
-        self.timer.start(self.timerSpeed,
-                         self)  # start the timer with the correct speed
-        # print("start () - timer is started")
+        self.timer.start(self.timerSpeed, self)
 
     def timerEvent(self, event):
         '''
@@ -82,14 +104,17 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): Timer event
         '''
-        # TODO adapter this code to handle your timers
         # if the timer that has 'ticked' is the one in this class
         if event.timerId() == self.timer.timerId():
-            if Board.counter == 0:
-                print("Game over")
-            self.counter -= 1
-            # print('timerEvent()', self.counter)
-            self.updateTimerSignal.emit(self.counter)
+            # Get the current player
+            player = self.getCurrentPlayer()
+            # If there is no time remaining, then game over
+            if player.timeRemaining <= 0:
+                self.updateGameOverSignal.emit()
+            else:
+                player.timeRemaining -= 1
+            # Emit the new state of the timer
+            self.updatePlayersTimer.emit(self.gameLogic.getPlayers())
         else:
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
@@ -114,36 +139,51 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
         # Get the current row/col where this click occured
         row, col = self.getSquareRowCol(event.x(), event.y())
+        # On mouse press try and update the board logic
         try:
             self.gameLogic.updateBoard(row, col)
+        # Handle all of the different logical errors that can occur
         except KOError:
             self.updateLogicSignal.emit(f"KO, try again ({row, col})")
         except SuicideError:
             self.updateLogicSignal.emit(f"Suicide, try again ({row, col})")
         except OccupiedError:
             self.updateLogicSignal.emit(f"Occupied, try again ({row, col})")
+        # Whatever happens, update the board
         finally:
             self.boardArray = self.gameLogic.board
-
+        # Emit the current player (this switches in the updateBoard logic)
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Emit the latest player objects
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Redraw the GUI
         self.update()
 
     def resetGame(self):
         '''
             Clears pieces from the board'
         '''
-        # TODO write code to reset game
-        pass
+        # Reset the logic
+        self.gameLogic.reset()
+        # Reset the board
+        self.boardArray = self.gameLogic.board
+        # Emit the player objects with reset scores
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Emit the current player
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Redraw the GUI
+        self.update()
 
-    def tryMove(self, newX, newY):
+    def skip(self):
         '''
-            Tries to move a piece
-
-            Args:
-                newX (Int): X axis position
-                newY (Int): Y axis position
+            Handle skip / passes
         '''
-        pass
+        # Try and skip a go, unless there are two skips - then emit game over
+        try:
+            self.gameLogic.skip()
+            self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        except GameOverPassError:
+            self.updateGameOverSignal.emit()
 
     def drawBoardSquares(self, painter):
         '''

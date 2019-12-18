@@ -39,14 +39,19 @@ class GameLogic:
             board (list): The board matrix
 
     &#39;&#39;&#39;
+    SKIP_LIMIT = 2
+
     def __init__(self, board):
+        # If a board isn&#39;t created, then fail
         if not board:
             raise ValueError(
                 &#34;Board must be a list of lists of equal dimensions&#34;)
-        self.startingBoard = board
+        # Create copy of the board (we need to ensure this isn&#39;t by reference)
+        self.startingBoard = self.copyBoard(board)
+        # Reset the logic
         self.reset()
 
-    def getplayer(self):
+    def getPlayer(self):
         &#39;&#39;&#39;
             Returns the current player
 
@@ -68,16 +73,49 @@ class GameLogic:
         &#39;&#39;&#39;
             Reset the game
         &#39;&#39;&#39;
-        self.board = self.startingBoard
+        # Create a copy of the board and store this
+        self.board = self.copyBoard(self.startingBoard)
+        # Set the heigh / width based on the dimensions of this
         self.height, self.width = len(self.startingBoard) - 1, len(
             self.startingBoard[0]) - 1
+        # Set a skip counter
+        self.skipCount = 0
+        # Store previous instances of the board
         self.previousBoards = []
+        # Store the players
         self.players = {
-            Piece.White: Player(&#34;White&#34;),
-            Piece.Black: Player(&#34;Black&#34;)
+            Piece.White: Player(&#34;White&#34;, (255, 255, 255)),
+            Piece.Black: Player(&#34;Black&#34;, (0, 0, 0))
         }
+        # Set the current players
         self.player = Piece.White
         self.opponent = Piece.Black
+
+    def skip(self):
+        &#39;&#39;&#39;
+            Allow a player to skip there go
+        &#39;&#39;&#39;
+        # Increment the skip counter
+        self.skipCount += 1
+        # Check to see if we have hit the skip limit
+        if self.skipCount &gt;= self.SKIP_LIMIT:
+            # If we have, raise a game over
+            raise GameOverPassError()
+        # Switch player and opponent
+        self.switchPlayers()
+
+    def copyBoard(self, board):
+        &#39;&#39;&#39;
+            Create a copy of the board, without reference. Nested lists cause
+            issues on direct assignment
+
+            Args:
+                board (list): Board
+
+            Returns:
+                list
+        &#39;&#39;&#39;
+        return [list(row) for row in board]
 
     def updateBoard(self, row, col):
         &#39;&#39;&#39;
@@ -89,20 +127,25 @@ class GameLogic:
             Returns:
                 List
         &#39;&#39;&#39;
-        # is this space occupied?
+        # A turn has taken place, so reset the skip counter
+        self.skipCount = 0
+        # Is this space occupied?
         if self.board[row][col] == self.opponent:
             raise OccupiedError()
         # Update the board, and store a copy of the original
-        self.previousBoards.append([list(row) for row in self.board])
+        self.previousBoards.append(self.copyBoard(self.board))
+        # Make the move
         self.board[row][col] = self.player
         # Scan the board for pieces and dead pieces
         for row, col in self.getRemovedPieces(self.player, self.opponent):
             self.board[row][col] = Piece.NoPiece
-        # Board backup
+
+        # Is this a KO instance?
         if self.isKoRule():
             self.board = self.previousBoards.pop()
             raise KOError()
-        # Check to see if this was a runtime error
+
+        # Remove any pieces for the opponent side
         for row, col in self.getRemovedPieces(self.opponent, self.player):
             self.board[row][col] = Piece.NoPiece
 
@@ -116,14 +159,21 @@ class GameLogic:
             raise SuicideError()
 
         # Update the players
+
+        # Players current piece count (used for suicide rule checks)
         self.players[self.player].setPieces(playerPieceCount)
+        # Players current score
         self.players[self.player].setScore(
             self.getCapturedLandCount(self.player) + playerPieceCount)
+        # Opponents current piece count (used for suicide rule checks)
         self.players[self.opponent].setPieces(opponentPieceCount)
+        # Opponents current score
         self.players[self.opponent].setScore(
             self.getCapturedLandCount(self.opponent) + opponentPieceCount)
 
+        # Turn over, switch players
         self.switchPlayers()
+        # Return the latest board
         return self.board
 
     def isKoRule(self):
@@ -133,8 +183,10 @@ class GameLogic:
             Returns:
                 Bool
         &#39;&#39;&#39;
+        # If there haven&#39;t been two turns, then there&#39;s no chance of this
         if len(self.previousBoards) &lt; 2:
             return False
+        # Compare the last player turn with this player turn
         return self.previousBoards[-2] == self.board
 
     def isSuicideRule(self, newPieceCount):
@@ -194,11 +246,15 @@ class GameLogic:
             Returns:
                 List
         &#39;&#39;&#39;
+        # A store for our opponents
         opponentsToCheck = []
+        # Nested loop through the board matrix
         for row in range(0, self.height + 1):
             for col in range(0, self.width + 1):
+                # If this is an opponent, then add it to the list
                 if self.board[row][col] == opponent:
                     opponentsToCheck.append((row, col))
+        # Return the list
         return opponentsToCheck
 
     def getAdjacents(self, row, col):
@@ -212,6 +268,7 @@ class GameLogic:
             Returns:
                 List
         &#39;&#39;&#39;
+        # Return a list of indexes as tuples around the given matrix position
         return [
             adjacent
             for adjacent in [(row, col - 1) if col &gt; 0 else None, (
@@ -228,25 +285,36 @@ class GameLogic:
             Returns:
                 list
         &#39;&#39;&#39;
-        # Pieces that will need removing
+        # Create a list to store dead pieces
         deadPieces = []
+        # Get the opponent positions as a list of tuples representing vertices
         opponentPositions = self.getPositions(opponent)
+        # If this is empty, then return an empty list
         if not opponentPositions:
             return []
+        # Store any checked positions to prevent infinite loops
         checked = []
-        for i, opponentPosition in enumerate(opponentPositions):
+        # Iterate through each opponent position
+        for opponentPosition in opponentPositions:
+            # If this has been previously checked, skip ahead
             if opponentPosition in checked:
                 continue
+            # Add this to our checked list
             checked.append(opponentPosition)
+            # Create a bucket for pieces in this group starting with
+            # the current position, this will be emptied
             opponentGroup = [opponentPosition]
+            # Create a list to store all adjacents around this group
             adjacentSpots = []
+            # This will be filled with the group
             group = [opponentPosition]
-            # while we have pieces in the opponent group
+            # while we have pieces in the opponent group bucket
             while opponentGroup:
+                # Get the last element
                 position = opponentGroup.pop()
-                # let&#39;s keep looking for adjacents
-                # for each of the adjacent positions
+                # Get the adjacents for this piece
                 for adjacent in self.getAdjacents(*position):
+                    # Check the adjacent
                     if (
                             # If it&#39;s already been added into the bucket
                             adjacent in opponentGroup
@@ -255,17 +323,22 @@ class GameLogic:
                             # if it&#39;s been checked previously
                             or adjacent in checked):
                         continue
-                    # if this doesn&#39;t include the player,
-                    # store this in the bucket (if we don&#39;t have it)
+                    # If this adjacent has the opponent piece...
                     if self.hasSpecificPiece(opponent, *adjacent):
+                        # We need to check this for adjacents
                         opponentGroup.append(adjacent)
+                        # This is part of the group
                         group.append(adjacent)
+                        # This piece will be checked so don&#39;t check twice
                         checked.append(adjacent)
                     else:
+                        # Else this is an adjacent that we need to see
+                        # if the player is covering
                         adjacentSpots.append(adjacent)
             if self.areAdjacentsCovered(player, adjacentSpots):
+                # If all adjacents are covered, then these are dead pieces
                 deadPieces += group
-
+        # Return the dead pieces to be removed
         return deadPieces
 
     def areAdjacentsCovered(self, player, adjacents):
@@ -299,7 +372,6 @@ class GameLogic:
         try:
             return self.board[row][col] == piece
         except IndexError:
-            print(row, col)
             raise IndexError(&#34;list index out of range&#34;)
 
 
@@ -310,10 +382,12 @@ class Player:
         Args:
             name (str): The name for the player
     &#39;&#39;&#39;
-    def __init__(self, name):
+    TIMER = 120
+
+    def __init__(self, name, color):
         self.name = name
-        self.score = 0
-        self.pieces = 0
+        self.color = color
+        self.reset()
 
     def setScore(self, score):
         &#39;&#39;&#39;
@@ -333,6 +407,12 @@ class Player:
         &#39;&#39;&#39;
         self.pieces = pieces
 
+    def deductTimeRemaining(self, time):
+        self.timeRemaining -= time
+
+    def getColor(self):
+        return self.color
+
     def getScore(self):
         &#39;&#39;&#39;
             Getter for the score attribute
@@ -351,12 +431,29 @@ class Player:
         &#39;&#39;&#39;
         return self.pieces
 
+    def getName(self):
+        return self.name
+
+    def getTimeRemaining(self):
+        return self.timeRemaining
+
+    def hasTimeLeft(self):
+        return self.timeRemaining &gt; 0
+
     def reset(self):
         &#39;&#39;&#39;
             Reset the attributes
         &#39;&#39;&#39;
         self.score = 0
         self.pieces = 0
+        self.timeRemaining = self.TIMER
+
+
+class GameOverPassError(Exception):
+    &#39;&#39;&#39;
+        Custom exception class for GameOverPassError
+    &#39;&#39;&#39;
+    pass
 
 
 class KOError(Exception):
@@ -412,14 +509,19 @@ class OccupiedError(Exception):
             board (list): The board matrix
 
     &#39;&#39;&#39;
+    SKIP_LIMIT = 2
+
     def __init__(self, board):
+        # If a board isn&#39;t created, then fail
         if not board:
             raise ValueError(
                 &#34;Board must be a list of lists of equal dimensions&#34;)
-        self.startingBoard = board
+        # Create copy of the board (we need to ensure this isn&#39;t by reference)
+        self.startingBoard = self.copyBoard(board)
+        # Reset the logic
         self.reset()
 
-    def getplayer(self):
+    def getPlayer(self):
         &#39;&#39;&#39;
             Returns the current player
 
@@ -441,16 +543,49 @@ class OccupiedError(Exception):
         &#39;&#39;&#39;
             Reset the game
         &#39;&#39;&#39;
-        self.board = self.startingBoard
+        # Create a copy of the board and store this
+        self.board = self.copyBoard(self.startingBoard)
+        # Set the heigh / width based on the dimensions of this
         self.height, self.width = len(self.startingBoard) - 1, len(
             self.startingBoard[0]) - 1
+        # Set a skip counter
+        self.skipCount = 0
+        # Store previous instances of the board
         self.previousBoards = []
+        # Store the players
         self.players = {
-            Piece.White: Player(&#34;White&#34;),
-            Piece.Black: Player(&#34;Black&#34;)
+            Piece.White: Player(&#34;White&#34;, (255, 255, 255)),
+            Piece.Black: Player(&#34;Black&#34;, (0, 0, 0))
         }
+        # Set the current players
         self.player = Piece.White
         self.opponent = Piece.Black
+
+    def skip(self):
+        &#39;&#39;&#39;
+            Allow a player to skip there go
+        &#39;&#39;&#39;
+        # Increment the skip counter
+        self.skipCount += 1
+        # Check to see if we have hit the skip limit
+        if self.skipCount &gt;= self.SKIP_LIMIT:
+            # If we have, raise a game over
+            raise GameOverPassError()
+        # Switch player and opponent
+        self.switchPlayers()
+
+    def copyBoard(self, board):
+        &#39;&#39;&#39;
+            Create a copy of the board, without reference. Nested lists cause
+            issues on direct assignment
+
+            Args:
+                board (list): Board
+
+            Returns:
+                list
+        &#39;&#39;&#39;
+        return [list(row) for row in board]
 
     def updateBoard(self, row, col):
         &#39;&#39;&#39;
@@ -462,20 +597,25 @@ class OccupiedError(Exception):
             Returns:
                 List
         &#39;&#39;&#39;
-        # is this space occupied?
+        # A turn has taken place, so reset the skip counter
+        self.skipCount = 0
+        # Is this space occupied?
         if self.board[row][col] == self.opponent:
             raise OccupiedError()
         # Update the board, and store a copy of the original
-        self.previousBoards.append([list(row) for row in self.board])
+        self.previousBoards.append(self.copyBoard(self.board))
+        # Make the move
         self.board[row][col] = self.player
         # Scan the board for pieces and dead pieces
         for row, col in self.getRemovedPieces(self.player, self.opponent):
             self.board[row][col] = Piece.NoPiece
-        # Board backup
+
+        # Is this a KO instance?
         if self.isKoRule():
             self.board = self.previousBoards.pop()
             raise KOError()
-        # Check to see if this was a runtime error
+
+        # Remove any pieces for the opponent side
         for row, col in self.getRemovedPieces(self.opponent, self.player):
             self.board[row][col] = Piece.NoPiece
 
@@ -489,14 +629,21 @@ class OccupiedError(Exception):
             raise SuicideError()
 
         # Update the players
+
+        # Players current piece count (used for suicide rule checks)
         self.players[self.player].setPieces(playerPieceCount)
+        # Players current score
         self.players[self.player].setScore(
             self.getCapturedLandCount(self.player) + playerPieceCount)
+        # Opponents current piece count (used for suicide rule checks)
         self.players[self.opponent].setPieces(opponentPieceCount)
+        # Opponents current score
         self.players[self.opponent].setScore(
             self.getCapturedLandCount(self.opponent) + opponentPieceCount)
 
+        # Turn over, switch players
         self.switchPlayers()
+        # Return the latest board
         return self.board
 
     def isKoRule(self):
@@ -506,8 +653,10 @@ class OccupiedError(Exception):
             Returns:
                 Bool
         &#39;&#39;&#39;
+        # If there haven&#39;t been two turns, then there&#39;s no chance of this
         if len(self.previousBoards) &lt; 2:
             return False
+        # Compare the last player turn with this player turn
         return self.previousBoards[-2] == self.board
 
     def isSuicideRule(self, newPieceCount):
@@ -567,11 +716,15 @@ class OccupiedError(Exception):
             Returns:
                 List
         &#39;&#39;&#39;
+        # A store for our opponents
         opponentsToCheck = []
+        # Nested loop through the board matrix
         for row in range(0, self.height + 1):
             for col in range(0, self.width + 1):
+                # If this is an opponent, then add it to the list
                 if self.board[row][col] == opponent:
                     opponentsToCheck.append((row, col))
+        # Return the list
         return opponentsToCheck
 
     def getAdjacents(self, row, col):
@@ -585,6 +738,7 @@ class OccupiedError(Exception):
             Returns:
                 List
         &#39;&#39;&#39;
+        # Return a list of indexes as tuples around the given matrix position
         return [
             adjacent
             for adjacent in [(row, col - 1) if col &gt; 0 else None, (
@@ -601,25 +755,36 @@ class OccupiedError(Exception):
             Returns:
                 list
         &#39;&#39;&#39;
-        # Pieces that will need removing
+        # Create a list to store dead pieces
         deadPieces = []
+        # Get the opponent positions as a list of tuples representing vertices
         opponentPositions = self.getPositions(opponent)
+        # If this is empty, then return an empty list
         if not opponentPositions:
             return []
+        # Store any checked positions to prevent infinite loops
         checked = []
-        for i, opponentPosition in enumerate(opponentPositions):
+        # Iterate through each opponent position
+        for opponentPosition in opponentPositions:
+            # If this has been previously checked, skip ahead
             if opponentPosition in checked:
                 continue
+            # Add this to our checked list
             checked.append(opponentPosition)
+            # Create a bucket for pieces in this group starting with
+            # the current position, this will be emptied
             opponentGroup = [opponentPosition]
+            # Create a list to store all adjacents around this group
             adjacentSpots = []
+            # This will be filled with the group
             group = [opponentPosition]
-            # while we have pieces in the opponent group
+            # while we have pieces in the opponent group bucket
             while opponentGroup:
+                # Get the last element
                 position = opponentGroup.pop()
-                # let&#39;s keep looking for adjacents
-                # for each of the adjacent positions
+                # Get the adjacents for this piece
                 for adjacent in self.getAdjacents(*position):
+                    # Check the adjacent
                     if (
                             # If it&#39;s already been added into the bucket
                             adjacent in opponentGroup
@@ -628,17 +793,22 @@ class OccupiedError(Exception):
                             # if it&#39;s been checked previously
                             or adjacent in checked):
                         continue
-                    # if this doesn&#39;t include the player,
-                    # store this in the bucket (if we don&#39;t have it)
+                    # If this adjacent has the opponent piece...
                     if self.hasSpecificPiece(opponent, *adjacent):
+                        # We need to check this for adjacents
                         opponentGroup.append(adjacent)
+                        # This is part of the group
                         group.append(adjacent)
+                        # This piece will be checked so don&#39;t check twice
                         checked.append(adjacent)
                     else:
+                        # Else this is an adjacent that we need to see
+                        # if the player is covering
                         adjacentSpots.append(adjacent)
             if self.areAdjacentsCovered(player, adjacentSpots):
+                # If all adjacents are covered, then these are dead pieces
                 deadPieces += group
-
+        # Return the dead pieces to be removed
         return deadPieces
 
     def areAdjacentsCovered(self, player, adjacents):
@@ -672,9 +842,32 @@ class OccupiedError(Exception):
         try:
             return self.board[row][col] == piece
         except IndexError:
-            print(row, col)
             raise IndexError(&#34;list index out of range&#34;)</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="app.game_logic.GameLogic.SKIP_LIMIT"><code class="name">var <span class="ident">SKIP_LIMIT</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="app.game_logic.GameLogic.areAdjacentsCovered"><code class="name flex">
@@ -714,6 +907,40 @@ adjacents
     return True</code></pre>
 </details>
 </dd>
+<dt id="app.game_logic.GameLogic.copyBoard"><code class="name flex">
+<span>def <span class="ident">copyBoard</span></span>(<span>self, board)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Create a copy of the board, without reference. Nested lists cause
+issues on direct assignment</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>board</code></strong> :&ensp;<code>list</code></dt>
+<dd>Board</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>list</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def copyBoard(self, board):
+    &#39;&#39;&#39;
+        Create a copy of the board, without reference. Nested lists cause
+        issues on direct assignment
+
+        Args:
+            board (list): Board
+
+        Returns:
+            list
+    &#39;&#39;&#39;
+    return [list(row) for row in board]</code></pre>
+</details>
+</dd>
 <dt id="app.game_logic.GameLogic.getAdjacents"><code class="name flex">
 <span>def <span class="ident">getAdjacents</span></span>(<span>self, row, col)</span>
 </code></dt>
@@ -744,6 +971,7 @@ col
         Returns:
             List
     &#39;&#39;&#39;
+    # Return a list of indexes as tuples around the given matrix position
     return [
         adjacent
         for adjacent in [(row, col - 1) if col &gt; 0 else None, (
@@ -812,6 +1040,30 @@ The current pieces</p>
     return len(self.scanBoard(player, Piece.NoPiece))</code></pre>
 </details>
 </dd>
+<dt id="app.game_logic.GameLogic.getPlayer"><code class="name flex">
+<span>def <span class="ident">getPlayer</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Returns the current player</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><a title="app.game_logic.Player" href="#app.game_logic.Player"><code>Player</code></a></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getPlayer(self):
+    &#39;&#39;&#39;
+        Returns the current player
+
+        Returns:
+            Player
+    &#39;&#39;&#39;
+    return self.player</code></pre>
+</details>
+</dd>
 <dt id="app.game_logic.GameLogic.getPlayers"><code class="name flex">
 <span>def <span class="ident">getPlayers</span></span>(<span>self)</span>
 </code></dt>
@@ -857,11 +1109,15 @@ The current pieces</p>
         Returns:
             List
     &#39;&#39;&#39;
+    # A store for our opponents
     opponentsToCheck = []
+    # Nested loop through the board matrix
     for row in range(0, self.height + 1):
         for col in range(0, self.width + 1):
+            # If this is an opponent, then add it to the list
             if self.board[row][col] == opponent:
                 opponentsToCheck.append((row, col))
+    # Return the list
     return opponentsToCheck</code></pre>
 </details>
 </dd>
@@ -896,30 +1152,6 @@ opponent
             List
     &#39;&#39;&#39;
     return self.scanBoard(player, opponent)</code></pre>
-</details>
-</dd>
-<dt id="app.game_logic.GameLogic.getplayer"><code class="name flex">
-<span>def <span class="ident">getplayer</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<section class="desc"><p>Returns the current player</p>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><a title="app.game_logic.Player" href="#app.game_logic.Player"><code>Player</code></a></dt>
-<dd>&nbsp;</dd>
-</dl></section>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def getplayer(self):
-    &#39;&#39;&#39;
-        Returns the current player
-
-        Returns:
-            Player
-    &#39;&#39;&#39;
-    return self.player</code></pre>
 </details>
 </dd>
 <dt id="app.game_logic.GameLogic.hasSpecificPiece"><code class="name flex">
@@ -958,7 +1190,6 @@ col
     try:
         return self.board[row][col] == piece
     except IndexError:
-        print(row, col)
         raise IndexError(&#34;list index out of range&#34;)</code></pre>
 </details>
 </dd>
@@ -983,8 +1214,10 @@ col
         Returns:
             Bool
     &#39;&#39;&#39;
+    # If there haven&#39;t been two turns, then there&#39;s no chance of this
     if len(self.previousBoards) &lt; 2:
         return False
+    # Compare the last player turn with this player turn
     return self.previousBoards[-2] == self.board</code></pre>
 </details>
 </dd>
@@ -1025,14 +1258,21 @@ col
     &#39;&#39;&#39;
         Reset the game
     &#39;&#39;&#39;
-    self.board = self.startingBoard
+    # Create a copy of the board and store this
+    self.board = self.copyBoard(self.startingBoard)
+    # Set the heigh / width based on the dimensions of this
     self.height, self.width = len(self.startingBoard) - 1, len(
         self.startingBoard[0]) - 1
+    # Set a skip counter
+    self.skipCount = 0
+    # Store previous instances of the board
     self.previousBoards = []
+    # Store the players
     self.players = {
-        Piece.White: Player(&#34;White&#34;),
-        Piece.Black: Player(&#34;Black&#34;)
+        Piece.White: Player(&#34;White&#34;, (255, 255, 255)),
+        Piece.Black: Player(&#34;Black&#34;, (0, 0, 0))
     }
+    # Set the current players
     self.player = Piece.White
     self.opponent = Piece.Black</code></pre>
 </details>
@@ -1058,25 +1298,36 @@ col
         Returns:
             list
     &#39;&#39;&#39;
-    # Pieces that will need removing
+    # Create a list to store dead pieces
     deadPieces = []
+    # Get the opponent positions as a list of tuples representing vertices
     opponentPositions = self.getPositions(opponent)
+    # If this is empty, then return an empty list
     if not opponentPositions:
         return []
+    # Store any checked positions to prevent infinite loops
     checked = []
-    for i, opponentPosition in enumerate(opponentPositions):
+    # Iterate through each opponent position
+    for opponentPosition in opponentPositions:
+        # If this has been previously checked, skip ahead
         if opponentPosition in checked:
             continue
+        # Add this to our checked list
         checked.append(opponentPosition)
+        # Create a bucket for pieces in this group starting with
+        # the current position, this will be emptied
         opponentGroup = [opponentPosition]
+        # Create a list to store all adjacents around this group
         adjacentSpots = []
+        # This will be filled with the group
         group = [opponentPosition]
-        # while we have pieces in the opponent group
+        # while we have pieces in the opponent group bucket
         while opponentGroup:
+            # Get the last element
             position = opponentGroup.pop()
-            # let&#39;s keep looking for adjacents
-            # for each of the adjacent positions
+            # Get the adjacents for this piece
             for adjacent in self.getAdjacents(*position):
+                # Check the adjacent
                 if (
                         # If it&#39;s already been added into the bucket
                         adjacent in opponentGroup
@@ -1085,18 +1336,46 @@ col
                         # if it&#39;s been checked previously
                         or adjacent in checked):
                     continue
-                # if this doesn&#39;t include the player,
-                # store this in the bucket (if we don&#39;t have it)
+                # If this adjacent has the opponent piece...
                 if self.hasSpecificPiece(opponent, *adjacent):
+                    # We need to check this for adjacents
                     opponentGroup.append(adjacent)
+                    # This is part of the group
                     group.append(adjacent)
+                    # This piece will be checked so don&#39;t check twice
                     checked.append(adjacent)
                 else:
+                    # Else this is an adjacent that we need to see
+                    # if the player is covering
                     adjacentSpots.append(adjacent)
         if self.areAdjacentsCovered(player, adjacentSpots):
+            # If all adjacents are covered, then these are dead pieces
             deadPieces += group
-
+    # Return the dead pieces to be removed
     return deadPieces</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.skip"><code class="name flex">
+<span>def <span class="ident">skip</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Allow a player to skip there go</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def skip(self):
+    &#39;&#39;&#39;
+        Allow a player to skip there go
+    &#39;&#39;&#39;
+    # Increment the skip counter
+    self.skipCount += 1
+    # Check to see if we have hit the skip limit
+    if self.skipCount &gt;= self.SKIP_LIMIT:
+        # If we have, raise a game over
+        raise GameOverPassError()
+    # Switch player and opponent
+    self.switchPlayers()</code></pre>
 </details>
 </dd>
 <dt id="app.game_logic.GameLogic.switchPlayers"><code class="name flex">
@@ -1144,20 +1423,25 @@ col
         Returns:
             List
     &#39;&#39;&#39;
-    # is this space occupied?
+    # A turn has taken place, so reset the skip counter
+    self.skipCount = 0
+    # Is this space occupied?
     if self.board[row][col] == self.opponent:
         raise OccupiedError()
     # Update the board, and store a copy of the original
-    self.previousBoards.append([list(row) for row in self.board])
+    self.previousBoards.append(self.copyBoard(self.board))
+    # Make the move
     self.board[row][col] = self.player
     # Scan the board for pieces and dead pieces
     for row, col in self.getRemovedPieces(self.player, self.opponent):
         self.board[row][col] = Piece.NoPiece
-    # Board backup
+
+    # Is this a KO instance?
     if self.isKoRule():
         self.board = self.previousBoards.pop()
         raise KOError()
-    # Check to see if this was a runtime error
+
+    # Remove any pieces for the opponent side
     for row, col in self.getRemovedPieces(self.opponent, self.player):
         self.board[row][col] = Piece.NoPiece
 
@@ -1171,18 +1455,47 @@ col
         raise SuicideError()
 
     # Update the players
+
+    # Players current piece count (used for suicide rule checks)
     self.players[self.player].setPieces(playerPieceCount)
+    # Players current score
     self.players[self.player].setScore(
         self.getCapturedLandCount(self.player) + playerPieceCount)
+    # Opponents current piece count (used for suicide rule checks)
     self.players[self.opponent].setPieces(opponentPieceCount)
+    # Opponents current score
     self.players[self.opponent].setScore(
         self.getCapturedLandCount(self.opponent) + opponentPieceCount)
 
+    # Turn over, switch players
     self.switchPlayers()
+    # Return the latest board
     return self.board</code></pre>
 </details>
 </dd>
 </dl>
+</dd>
+<dt id="app.game_logic.GameOverPassError"><code class="flex name class">
+<span>class <span class="ident">GameOverPassError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Custom exception class for GameOverPassError</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GameOverPassError(Exception):
+    &#39;&#39;&#39;
+        Custom exception class for GameOverPassError
+    &#39;&#39;&#39;
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
 </dd>
 <dt id="app.game_logic.KOError"><code class="flex name class">
 <span>class <span class="ident">KOError</span></span>
@@ -1230,7 +1543,7 @@ col
 </dd>
 <dt id="app.game_logic.Player"><code class="flex name class">
 <span>class <span class="ident">Player</span></span>
-<span>(</span><span>name)</span>
+<span>(</span><span>name, color)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Represent a player</p>
@@ -1250,10 +1563,12 @@ col
         Args:
             name (str): The name for the player
     &#39;&#39;&#39;
-    def __init__(self, name):
+    TIMER = 120
+
+    def __init__(self, name, color):
         self.name = name
-        self.score = 0
-        self.pieces = 0
+        self.color = color
+        self.reset()
 
     def setScore(self, score):
         &#39;&#39;&#39;
@@ -1273,6 +1588,12 @@ col
         &#39;&#39;&#39;
         self.pieces = pieces
 
+    def deductTimeRemaining(self, time):
+        self.timeRemaining -= time
+
+    def getColor(self):
+        return self.color
+
     def getScore(self):
         &#39;&#39;&#39;
             Getter for the score attribute
@@ -1291,15 +1612,88 @@ col
         &#39;&#39;&#39;
         return self.pieces
 
+    def getName(self):
+        return self.name
+
+    def getTimeRemaining(self):
+        return self.timeRemaining
+
+    def hasTimeLeft(self):
+        return self.timeRemaining &gt; 0
+
     def reset(self):
         &#39;&#39;&#39;
             Reset the attributes
         &#39;&#39;&#39;
         self.score = 0
-        self.pieces = 0</code></pre>
+        self.pieces = 0
+        self.timeRemaining = self.TIMER</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="app.game_logic.Player.TIMER"><code class="name">var <span class="ident">TIMER</span></code></dt>
+<dd>
+<section class="desc"><p>int([x]) -&gt; integer
+int(x, base=10) -&gt; integer</p>
+<p>Convert a number or string to an integer, or return 0 if no arguments
+are given.
+If x is a number, return x.<strong>int</strong>().
+For floating point
+numbers, this truncates towards zero.</p>
+<p>If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.
+The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.
+The base defaults to 10.
+Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.</p>
+<pre><code>&gt;&gt;&gt; int('0b100', base=0)
+4
+</code></pre></section>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
+<dt id="app.game_logic.Player.deductTimeRemaining"><code class="name flex">
+<span>def <span class="ident">deductTimeRemaining</span></span>(<span>self, time)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def deductTimeRemaining(self, time):
+    self.timeRemaining -= time</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.Player.getColor"><code class="name flex">
+<span>def <span class="ident">getColor</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getColor(self):
+    return self.color</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.Player.getName"><code class="name flex">
+<span>def <span class="ident">getName</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getName(self):
+    return self.name</code></pre>
+</details>
+</dd>
 <dt id="app.game_logic.Player.getPieces"><code class="name flex">
 <span>def <span class="ident">getPieces</span></span>(<span>self)</span>
 </code></dt>
@@ -1348,6 +1742,32 @@ col
     return self.score</code></pre>
 </details>
 </dd>
+<dt id="app.game_logic.Player.getTimeRemaining"><code class="name flex">
+<span>def <span class="ident">getTimeRemaining</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getTimeRemaining(self):
+    return self.timeRemaining</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.Player.hasTimeLeft"><code class="name flex">
+<span>def <span class="ident">hasTimeLeft</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def hasTimeLeft(self):
+    return self.timeRemaining &gt; 0</code></pre>
+</details>
+</dd>
 <dt id="app.game_logic.Player.reset"><code class="name flex">
 <span>def <span class="ident">reset</span></span>(<span>self)</span>
 </code></dt>
@@ -1362,7 +1782,8 @@ col
         Reset the attributes
     &#39;&#39;&#39;
     self.score = 0
-    self.pieces = 0</code></pre>
+    self.pieces = 0
+    self.timeRemaining = self.TIMER</code></pre>
 </details>
 </dd>
 <dt id="app.game_logic.Player.setPieces"><code class="name flex">
@@ -1456,22 +1877,28 @@ col
 <li>
 <h4><code><a title="app.game_logic.GameLogic" href="#app.game_logic.GameLogic">GameLogic</a></code></h4>
 <ul class="">
+<li><code><a title="app.game_logic.GameLogic.SKIP_LIMIT" href="#app.game_logic.GameLogic.SKIP_LIMIT">SKIP_LIMIT</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.areAdjacentsCovered" href="#app.game_logic.GameLogic.areAdjacentsCovered">areAdjacentsCovered</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.copyBoard" href="#app.game_logic.GameLogic.copyBoard">copyBoard</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getAdjacents" href="#app.game_logic.GameLogic.getAdjacents">getAdjacents</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getBoard" href="#app.game_logic.GameLogic.getBoard">getBoard</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getCapturedLandCount" href="#app.game_logic.GameLogic.getCapturedLandCount">getCapturedLandCount</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getPlayer" href="#app.game_logic.GameLogic.getPlayer">getPlayer</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getPlayers" href="#app.game_logic.GameLogic.getPlayers">getPlayers</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getPositions" href="#app.game_logic.GameLogic.getPositions">getPositions</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getRemovedPieces" href="#app.game_logic.GameLogic.getRemovedPieces">getRemovedPieces</a></code></li>
-<li><code><a title="app.game_logic.GameLogic.getplayer" href="#app.game_logic.GameLogic.getplayer">getplayer</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.hasSpecificPiece" href="#app.game_logic.GameLogic.hasSpecificPiece">hasSpecificPiece</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.isKoRule" href="#app.game_logic.GameLogic.isKoRule">isKoRule</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.isSuicideRule" href="#app.game_logic.GameLogic.isSuicideRule">isSuicideRule</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.reset" href="#app.game_logic.GameLogic.reset">reset</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.scanBoard" href="#app.game_logic.GameLogic.scanBoard">scanBoard</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.skip" href="#app.game_logic.GameLogic.skip">skip</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.switchPlayers" href="#app.game_logic.GameLogic.switchPlayers">switchPlayers</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.updateBoard" href="#app.game_logic.GameLogic.updateBoard">updateBoard</a></code></li>
 </ul>
+</li>
+<li>
+<h4><code><a title="app.game_logic.GameOverPassError" href="#app.game_logic.GameOverPassError">GameOverPassError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="app.game_logic.KOError" href="#app.game_logic.KOError">KOError</a></code></h4>
@@ -1481,9 +1908,15 @@ col
 </li>
 <li>
 <h4><code><a title="app.game_logic.Player" href="#app.game_logic.Player">Player</a></code></h4>
-<ul class="">
+<ul class="two-column">
+<li><code><a title="app.game_logic.Player.TIMER" href="#app.game_logic.Player.TIMER">TIMER</a></code></li>
+<li><code><a title="app.game_logic.Player.deductTimeRemaining" href="#app.game_logic.Player.deductTimeRemaining">deductTimeRemaining</a></code></li>
+<li><code><a title="app.game_logic.Player.getColor" href="#app.game_logic.Player.getColor">getColor</a></code></li>
+<li><code><a title="app.game_logic.Player.getName" href="#app.game_logic.Player.getName">getName</a></code></li>
 <li><code><a title="app.game_logic.Player.getPieces" href="#app.game_logic.Player.getPieces">getPieces</a></code></li>
 <li><code><a title="app.game_logic.Player.getScore" href="#app.game_logic.Player.getScore">getScore</a></code></li>
+<li><code><a title="app.game_logic.Player.getTimeRemaining" href="#app.game_logic.Player.getTimeRemaining">getTimeRemaining</a></code></li>
+<li><code><a title="app.game_logic.Player.hasTimeLeft" href="#app.game_logic.Player.hasTimeLeft">hasTimeLeft</a></code></li>
 <li><code><a title="app.game_logic.Player.reset" href="#app.game_logic.Player.reset">reset</a></code></li>
 <li><code><a title="app.game_logic.Player.setPieces" href="#app.game_logic.Player.setPieces">setPieces</a></code></li>
 <li><code><a title="app.game_logic.Player.setScore" href="#app.game_logic.Player.setScore">setScore</a></code></li>
