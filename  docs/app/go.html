@@ -28,8 +28,10 @@
 <pre><code class="python">&#39;&#39;&#39;
     Core Go Application
 &#39;&#39;&#39;
-from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QToolBar
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
+                             QDialogButtonBox, QLabel, QToolBar, QPushButton,
+                             QVBoxLayout)
+from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
 from .score_board import ScoreBoard
 
@@ -74,8 +76,130 @@ class Go(QMainWindow):
         self.center()
         # self.setWindowTitle(&#39;Go&#39;)
         self.show()
+
+        # Create a toolbar to display player controls
         self.toolbar = QToolBar()
+        # This should be at the top
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
+        # If there are no players, then just await state
+        self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+        # Create a timer for the player
+        self.playerTimeDisplay = self.makeLCD()
+        # Get the current player from the board
+        self.updatePlayer(self.board.getCurrentPlayer())
+        # Add these widgets to the toolbar
+        self.toolbar.addWidget(self.currentPlayerLabel)
+        self.toolbar.addWidget(self.playerTimeDisplay)
+
+        # Create toolbar buttons for the player
+
+        # Restart the game
+        reset = QPushButton(&#34;Restart&#34;)
+        reset.clicked.connect(self.board.resetGame)
+        self.toolbar.addWidget(reset)
+
+        # Skip a turn
+        skip = QPushButton(&#34;Skip&#34;)
+        skip.clicked.connect(self.trySkip)
+        self.toolbar.addWidget(skip)
+
+        # Undo a turn
+        undo = QPushButton(&#34;Undo&#34;)
+        undo.clicked.connect(self.board.undo)
+        self.toolbar.addWidget(undo)
+
+        # Connect any signals from the board to helper methods
+        self.makeConnection()
+
+    def makeLCD(self):
+        &#39;&#39;&#39;
+            Make a QLCDNumber
+
+            Returns:
+                QLCDNumber
+        &#39;&#39;&#39;
+        lcd = QLCDNumber()
+        lcd.setSegmentStyle(QLCDNumber.Flat)
+        lcd.setStyleSheet(&#34;&#34;&#34;QLCDNumber {
+                                background-color: black;
+                                color: white; }&#34;&#34;&#34;)
+        return lcd
+
+    def makeConnection(self):
+        &#39;&#39;&#39;
+            Connect board signals to methods
+        &#39;&#39;&#39;
+        self.board.updatePlayersTimer.connect(self.updatePlayerTimer)
+        self.board.updateCurrentPlayerSignal.connect(self.updatePlayer)
+        self.board.updateGameOverSignal.connect(self.updateGameOver)
+
+    @pyqtSlot(object)
+    def updatePlayer(self, player):
+        &#39;&#39;&#39;
+            Given a player object, update the player
+
+            Args:
+                player (Player): The current player
+        &#39;&#39;&#39;
+        self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
+        background = f&#34;rgb({player.getColor()})&#34;
+        self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+                color :  rgb(127, 127, 127);
+            }
+        &#34;&#34;&#34;)
+
+    @pyqtSlot(object)
+    def updatePlayerTimer(self, _):
+        &#39;&#39;&#39;
+            Update the player timer from players
+        &#39;&#39;&#39;
+        self.playerTimeDisplay.display(
+            self.board.getCurrentPlayer().getTimeRemaining())
+
+    def trySkip(self):
+        &#39;&#39;&#39;
+            Try and skip a go
+        &#39;&#39;&#39;
+        self.board.skip()
+
+    @pyqtSlot()
+    def updateGameOver(self):
+        &#39;&#39;&#39;
+            On GameOver, trigger a dialog
+        &#39;&#39;&#39;
+        # Create dialog
+        self.gameOverDialog = QDialog(self)
+
+        # Create a layout to add to the dialog
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(&#34;Game Over&#34;))
+
+        # Create a button holder for the dialog
+        buttonBox = QDialogButtonBox(Qt.Vertical)
+
+        # Add some options
+        buttonBox.addButton(&#34;&amp;Restart&#34;, QDialogButtonBox.AcceptRole)
+        buttonBox.addButton(&#34;&amp;Leave&#34;, QDialogButtonBox.RejectRole)
+
+        # Connect methods to each of the buttons for different scenarios
+        buttonBox.accepted.connect(self.restartGame)
+        buttonBox.rejected.connect(self.close)
+
+        # Add the buttons to the layout
+        layout.addWidget(buttonBox)
+
+        # Set the layout, and launch the dialog
+        self.gameOverDialog.setLayout(layout)
+        self.gameOverDialog.exec_()
+
+    def restartGame(self):
+        &#39;&#39;&#39;
+            Close the dialog and restart the game
+        &#39;&#39;&#39;
+        self.board.resetGame()
+        self.gameOverDialog.close()
 
     def center(self):
         &#39;&#39;&#39;
@@ -145,8 +269,130 @@ class Go(QMainWindow):
         self.center()
         # self.setWindowTitle(&#39;Go&#39;)
         self.show()
+
+        # Create a toolbar to display player controls
         self.toolbar = QToolBar()
+        # This should be at the top
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
+        # If there are no players, then just await state
+        self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+        # Create a timer for the player
+        self.playerTimeDisplay = self.makeLCD()
+        # Get the current player from the board
+        self.updatePlayer(self.board.getCurrentPlayer())
+        # Add these widgets to the toolbar
+        self.toolbar.addWidget(self.currentPlayerLabel)
+        self.toolbar.addWidget(self.playerTimeDisplay)
+
+        # Create toolbar buttons for the player
+
+        # Restart the game
+        reset = QPushButton(&#34;Restart&#34;)
+        reset.clicked.connect(self.board.resetGame)
+        self.toolbar.addWidget(reset)
+
+        # Skip a turn
+        skip = QPushButton(&#34;Skip&#34;)
+        skip.clicked.connect(self.trySkip)
+        self.toolbar.addWidget(skip)
+
+        # Undo a turn
+        undo = QPushButton(&#34;Undo&#34;)
+        undo.clicked.connect(self.board.undo)
+        self.toolbar.addWidget(undo)
+
+        # Connect any signals from the board to helper methods
+        self.makeConnection()
+
+    def makeLCD(self):
+        &#39;&#39;&#39;
+            Make a QLCDNumber
+
+            Returns:
+                QLCDNumber
+        &#39;&#39;&#39;
+        lcd = QLCDNumber()
+        lcd.setSegmentStyle(QLCDNumber.Flat)
+        lcd.setStyleSheet(&#34;&#34;&#34;QLCDNumber {
+                                background-color: black;
+                                color: white; }&#34;&#34;&#34;)
+        return lcd
+
+    def makeConnection(self):
+        &#39;&#39;&#39;
+            Connect board signals to methods
+        &#39;&#39;&#39;
+        self.board.updatePlayersTimer.connect(self.updatePlayerTimer)
+        self.board.updateCurrentPlayerSignal.connect(self.updatePlayer)
+        self.board.updateGameOverSignal.connect(self.updateGameOver)
+
+    @pyqtSlot(object)
+    def updatePlayer(self, player):
+        &#39;&#39;&#39;
+            Given a player object, update the player
+
+            Args:
+                player (Player): The current player
+        &#39;&#39;&#39;
+        self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
+        background = f&#34;rgb({player.getColor()})&#34;
+        self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+                color :  rgb(127, 127, 127);
+            }
+        &#34;&#34;&#34;)
+
+    @pyqtSlot(object)
+    def updatePlayerTimer(self, _):
+        &#39;&#39;&#39;
+            Update the player timer from players
+        &#39;&#39;&#39;
+        self.playerTimeDisplay.display(
+            self.board.getCurrentPlayer().getTimeRemaining())
+
+    def trySkip(self):
+        &#39;&#39;&#39;
+            Try and skip a go
+        &#39;&#39;&#39;
+        self.board.skip()
+
+    @pyqtSlot()
+    def updateGameOver(self):
+        &#39;&#39;&#39;
+            On GameOver, trigger a dialog
+        &#39;&#39;&#39;
+        # Create dialog
+        self.gameOverDialog = QDialog(self)
+
+        # Create a layout to add to the dialog
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(&#34;Game Over&#34;))
+
+        # Create a button holder for the dialog
+        buttonBox = QDialogButtonBox(Qt.Vertical)
+
+        # Add some options
+        buttonBox.addButton(&#34;&amp;Restart&#34;, QDialogButtonBox.AcceptRole)
+        buttonBox.addButton(&#34;&amp;Leave&#34;, QDialogButtonBox.RejectRole)
+
+        # Connect methods to each of the buttons for different scenarios
+        buttonBox.accepted.connect(self.restartGame)
+        buttonBox.rejected.connect(self.close)
+
+        # Add the buttons to the layout
+        layout.addWidget(buttonBox)
+
+        # Set the layout, and launch the dialog
+        self.gameOverDialog.setLayout(layout)
+        self.gameOverDialog.exec_()
+
+    def restartGame(self):
+        &#39;&#39;&#39;
+            Close the dialog and restart the game
+        &#39;&#39;&#39;
+        self.board.resetGame()
+        self.gameOverDialog.close()
 
     def center(self):
         &#39;&#39;&#39;
@@ -258,8 +504,210 @@ class Go(QMainWindow):
     self.center()
     # self.setWindowTitle(&#39;Go&#39;)
     self.show()
+
+    # Create a toolbar to display player controls
     self.toolbar = QToolBar()
-    self.addToolBar(Qt.TopToolBarArea, self.toolbar)</code></pre>
+    # This should be at the top
+    self.addToolBar(Qt.TopToolBarArea, self.toolbar)
+    # If there are no players, then just await state
+    self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+    # Create a timer for the player
+    self.playerTimeDisplay = self.makeLCD()
+    # Get the current player from the board
+    self.updatePlayer(self.board.getCurrentPlayer())
+    # Add these widgets to the toolbar
+    self.toolbar.addWidget(self.currentPlayerLabel)
+    self.toolbar.addWidget(self.playerTimeDisplay)
+
+    # Create toolbar buttons for the player
+
+    # Restart the game
+    reset = QPushButton(&#34;Restart&#34;)
+    reset.clicked.connect(self.board.resetGame)
+    self.toolbar.addWidget(reset)
+
+    # Skip a turn
+    skip = QPushButton(&#34;Skip&#34;)
+    skip.clicked.connect(self.trySkip)
+    self.toolbar.addWidget(skip)
+
+    # Undo a turn
+    undo = QPushButton(&#34;Undo&#34;)
+    undo.clicked.connect(self.board.undo)
+    self.toolbar.addWidget(undo)
+
+    # Connect any signals from the board to helper methods
+    self.makeConnection()</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.makeConnection"><code class="name flex">
+<span>def <span class="ident">makeConnection</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Connect board signals to methods</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def makeConnection(self):
+    &#39;&#39;&#39;
+        Connect board signals to methods
+    &#39;&#39;&#39;
+    self.board.updatePlayersTimer.connect(self.updatePlayerTimer)
+    self.board.updateCurrentPlayerSignal.connect(self.updatePlayer)
+    self.board.updateGameOverSignal.connect(self.updateGameOver)</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.makeLCD"><code class="name flex">
+<span>def <span class="ident">makeLCD</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Make a QLCDNumber</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>QLCDNumber</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def makeLCD(self):
+    &#39;&#39;&#39;
+        Make a QLCDNumber
+
+        Returns:
+            QLCDNumber
+    &#39;&#39;&#39;
+    lcd = QLCDNumber()
+    lcd.setSegmentStyle(QLCDNumber.Flat)
+    lcd.setStyleSheet(&#34;&#34;&#34;QLCDNumber {
+                            background-color: black;
+                            color: white; }&#34;&#34;&#34;)
+    return lcd</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.restartGame"><code class="name flex">
+<span>def <span class="ident">restartGame</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Close the dialog and restart the game</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def restartGame(self):
+    &#39;&#39;&#39;
+        Close the dialog and restart the game
+    &#39;&#39;&#39;
+    self.board.resetGame()
+    self.gameOverDialog.close()</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.trySkip"><code class="name flex">
+<span>def <span class="ident">trySkip</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Try and skip a go</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def trySkip(self):
+    &#39;&#39;&#39;
+        Try and skip a go
+    &#39;&#39;&#39;
+    self.board.skip()</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.updateGameOver"><code class="name flex">
+<span>def <span class="ident">updateGameOver</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>On GameOver, trigger a dialog</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@pyqtSlot()
+def updateGameOver(self):
+    &#39;&#39;&#39;
+        On GameOver, trigger a dialog
+    &#39;&#39;&#39;
+    # Create dialog
+    self.gameOverDialog = QDialog(self)
+
+    # Create a layout to add to the dialog
+    layout = QVBoxLayout()
+    layout.addWidget(QLabel(&#34;Game Over&#34;))
+
+    # Create a button holder for the dialog
+    buttonBox = QDialogButtonBox(Qt.Vertical)
+
+    # Add some options
+    buttonBox.addButton(&#34;&amp;Restart&#34;, QDialogButtonBox.AcceptRole)
+    buttonBox.addButton(&#34;&amp;Leave&#34;, QDialogButtonBox.RejectRole)
+
+    # Connect methods to each of the buttons for different scenarios
+    buttonBox.accepted.connect(self.restartGame)
+    buttonBox.rejected.connect(self.close)
+
+    # Add the buttons to the layout
+    layout.addWidget(buttonBox)
+
+    # Set the layout, and launch the dialog
+    self.gameOverDialog.setLayout(layout)
+    self.gameOverDialog.exec_()</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.updatePlayer"><code class="name flex">
+<span>def <span class="ident">updatePlayer</span></span>(<span>self, player)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Given a player object, update the player</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>player</code></strong> :&ensp;<code>Player</code></dt>
+<dd>The current player</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@pyqtSlot(object)
+def updatePlayer(self, player):
+    &#39;&#39;&#39;
+        Given a player object, update the player
+
+        Args:
+            player (Player): The current player
+    &#39;&#39;&#39;
+    self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
+    background = f&#34;rgb({player.getColor()})&#34;
+    self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
+        QLabel {
+            background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+            color :  rgb(127, 127, 127);
+        }
+    &#34;&#34;&#34;)</code></pre>
+</details>
+</dd>
+<dt id="app.go.Go.updatePlayerTimer"><code class="name flex">
+<span>def <span class="ident">updatePlayerTimer</span></span>(<span>self, _)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Update the player timer from players</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@pyqtSlot(object)
+def updatePlayerTimer(self, _):
+    &#39;&#39;&#39;
+        Update the player timer from players
+    &#39;&#39;&#39;
+    self.playerTimeDisplay.display(
+        self.board.getCurrentPlayer().getTimeRemaining())</code></pre>
 </details>
 </dd>
 </dl>
@@ -282,11 +730,18 @@ class Go(QMainWindow):
 <ul>
 <li>
 <h4><code><a title="app.go.Go" href="#app.go.Go">Go</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="app.go.Go.center" href="#app.go.Go.center">center</a></code></li>
 <li><code><a title="app.go.Go.getBoard" href="#app.go.Go.getBoard">getBoard</a></code></li>
 <li><code><a title="app.go.Go.getScoreBoard" href="#app.go.Go.getScoreBoard">getScoreBoard</a></code></li>
 <li><code><a title="app.go.Go.initUI" href="#app.go.Go.initUI">initUI</a></code></li>
+<li><code><a title="app.go.Go.makeConnection" href="#app.go.Go.makeConnection">makeConnection</a></code></li>
+<li><code><a title="app.go.Go.makeLCD" href="#app.go.Go.makeLCD">makeLCD</a></code></li>
+<li><code><a title="app.go.Go.restartGame" href="#app.go.Go.restartGame">restartGame</a></code></li>
+<li><code><a title="app.go.Go.trySkip" href="#app.go.Go.trySkip">trySkip</a></code></li>
+<li><code><a title="app.go.Go.updateGameOver" href="#app.go.Go.updateGameOver">updateGameOver</a></code></li>
+<li><code><a title="app.go.Go.updatePlayer" href="#app.go.Go.updatePlayer">updatePlayer</a></code></li>
+<li><code><a title="app.go.Go.updatePlayerTimer" href="#app.go.Go.updatePlayerTimer">updatePlayerTimer</a></code></li>
 </ul>
 </li>
 </ul>

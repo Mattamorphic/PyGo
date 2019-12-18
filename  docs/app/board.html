@@ -32,20 +32,29 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
 from .piece import Piece
-from .game_logic import GameLogic
+from .game_logic import (GameLogic, GameOverPassError, KOError, SuicideError,
+                         OccupiedError)
 
 
 class Board(QFrame):  # base the board on a QFrame widget
-    updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
+
+    # Signal for the player timer being updated by timerEvent
+    updatePlayersTimer = pyqtSignal(object)
+    # Signal for updating the score
     updateScoreSignal = pyqtSignal(object)
+    # Signal for if there is a logic error (KO/Suicide/Occupied)
+    updateLogicSignal = pyqtSignal(str)
+    # Signal for for the current player
+    updateCurrentPlayerSignal = pyqtSignal(object)
+    # Signal for game over
+    updateGameOverSignal = pyqtSignal()
 
     boardWidth = 7
     boardHeight = 7
-    timerSpeed = 1  # the timer updates ever 1 second
-    counter = 10  # the number the counter will count down from
+    # Timer speed is denoted in milliseconds
+    timerSpeed = 1000
 
+    # Colours to denote checks each representing an RGB tuple
     checkColours = [(255, 235, 205), (205, 133, 63)]
 
     def __init__(self, parent):
@@ -56,23 +65,37 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
             Initiates the board
         &#39;&#39;&#39;
-        self.timer = QBasicTimer()  # create a timer for the game
-        self.isStarted = False  # game is not currently started
-
+        # Timer for tracking time
+        self.timer = QBasicTimer()
+        # Denotes if the game is underway
+        self.isStarted = False
+        # The initial board
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        # The gameLogic that controls play
         self.gameLogic = GameLogic(self.boardArray)
-        self.printBoardArray()
-        self.start()  # start the game which will start the timer
+        # Start the game
+        self.start()
 
-    def printBoardArray(self):
+    def getCurrentPlayer(self):
+        &#39;&#39;&#39;
+            Helper method to fetch the current player from the logic instance
+
+            Returns:
+                Player
+        &#39;&#39;&#39;
+        return self.gameLogic.getPlayers()[self.gameLogic.player]
+
+    def printBoardArray(self, board):
         &#39;&#39;&#39;
             Pretty prints the boardArray to the terminal
+
+            Args:
+                board (list): A board
         &#39;&#39;&#39;
         print(&#34;boardArray:&#34;)
-        print(&#39;\n&#39;.join([
-            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-        ]))
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -98,9 +121,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.isStarted = True  # determines if the game has started to TRUE
         self.resetGame()  # reset the game
-        self.timer.start(self.timerSpeed,
-                         self)  # start the timer with the correct speed
-        # print(&#34;start () - timer is started&#34;)
+        self.timer.start(self.timerSpeed, self)
 
     def timerEvent(self, event):
         &#39;&#39;&#39;
@@ -110,19 +131,22 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): Timer event
         &#39;&#39;&#39;
-        # TODO adapter this code to handle your timers
         # if the timer that has &#39;ticked&#39; is the one in this class
         if event.timerId() == self.timer.timerId():
-            if Board.counter == 0:
-                print(&#34;Game over&#34;)
-            self.counter -= 1
-            # print(&#39;timerEvent()&#39;, self.counter)
-            self.updateTimerSignal.emit(self.counter)
+            # Get the current player
+            player = self.getCurrentPlayer()
+            # If there is no time remaining, then game over
+            if player.timeRemaining &lt;= 0:
+                self.updateGameOverSignal.emit()
+            else:
+                player.timeRemaining -= 1
+            # Emit the new state of the timer
+            self.updatePlayersTimer.emit(self.gameLogic.getPlayers())
         else:
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event=None):
         &#39;&#39;&#39;
             Paints the board and the pieces of the game
 
@@ -140,40 +164,53 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The mouse press event
         &#39;&#39;&#39;
-        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-        print(&#34;mousePressEvent() - &#34; + clickLoc)
-        # TODO you could call some game logic here
+        # Get the current row/col where this click occured
         row, col = self.getSquareRowCol(event.x(), event.y())
-
-        provisionalBoard = self.boardArray
-        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        # On mouse press try and update the board logic
         try:
-            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-        except RuntimeError:
-            print(&#34;Suicide rule in effect, try again&#34;)
-
+            self.gameLogic.updateBoard(row, col)
+        # Handle all of the different logical errors that can occur
+        except KOError:
+            self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+        except SuicideError:
+            self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+        except OccupiedError:
+            self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+        # Whatever happens, update the board
+        finally:
+            self.boardArray = self.gameLogic.board
+        # Emit the current player (this switches in the updateBoard logic)
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Emit the latest player objects
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Redraw the GUI
         self.update()
-        print(f&#34;Click in {col, row}&#34;)
-        self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
         &#39;&#39;&#39;
             Clears pieces from the board&#39;
         &#39;&#39;&#39;
-        # TODO write code to reset game
-        pass
+        # Reset the logic
+        self.gameLogic.reset()
+        # Reset the board
+        self.boardArray = self.gameLogic.board
+        # Emit the player objects with reset scores
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Emit the current player
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Redraw the GUI
+        self.update()
 
-    def tryMove(self, newX, newY):
+    def skip(self):
         &#39;&#39;&#39;
-            Tries to move a piece
-
-            Args:
-                newX (Int): X axis position
-                newY (Int): Y axis position
+            Handle skip / passes
         &#39;&#39;&#39;
-        pass
+        # Try and skip a go, unless there are two skips - then emit game over
+        try:
+            self.gameLogic.skip()
+            self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        except GameOverPassError:
+            self.updateGameOverSignal.emit()
 
     def drawBoardSquares(self, painter):
         &#39;&#39;&#39;
@@ -331,16 +368,24 @@ class Board(QFrame):  # base the board on a QFrame widget
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Board(QFrame):  # base the board on a QFrame widget
-    updateTimerSignal = pyqtSignal(int)  # signal sent when timer is updated
-    clickLocationSignal = pyqtSignal(
-        str)  # signal sent when there is a new click location
+
+    # Signal for the player timer being updated by timerEvent
+    updatePlayersTimer = pyqtSignal(object)
+    # Signal for updating the score
     updateScoreSignal = pyqtSignal(object)
+    # Signal for if there is a logic error (KO/Suicide/Occupied)
+    updateLogicSignal = pyqtSignal(str)
+    # Signal for for the current player
+    updateCurrentPlayerSignal = pyqtSignal(object)
+    # Signal for game over
+    updateGameOverSignal = pyqtSignal()
 
     boardWidth = 7
     boardHeight = 7
-    timerSpeed = 1  # the timer updates ever 1 second
-    counter = 10  # the number the counter will count down from
+    # Timer speed is denoted in milliseconds
+    timerSpeed = 1000
 
+    # Colours to denote checks each representing an RGB tuple
     checkColours = [(255, 235, 205), (205, 133, 63)]
 
     def __init__(self, parent):
@@ -351,23 +396,37 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
             Initiates the board
         &#39;&#39;&#39;
-        self.timer = QBasicTimer()  # create a timer for the game
-        self.isStarted = False  # game is not currently started
-
+        # Timer for tracking time
+        self.timer = QBasicTimer()
+        # Denotes if the game is underway
+        self.isStarted = False
+        # The initial board
         self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                            for i in range(self.boardHeight)]
+        # The gameLogic that controls play
         self.gameLogic = GameLogic(self.boardArray)
-        self.printBoardArray()
-        self.start()  # start the game which will start the timer
+        # Start the game
+        self.start()
 
-    def printBoardArray(self):
+    def getCurrentPlayer(self):
+        &#39;&#39;&#39;
+            Helper method to fetch the current player from the logic instance
+
+            Returns:
+                Player
+        &#39;&#39;&#39;
+        return self.gameLogic.getPlayers()[self.gameLogic.player]
+
+    def printBoardArray(self, board):
         &#39;&#39;&#39;
             Pretty prints the boardArray to the terminal
+
+            Args:
+                board (list): A board
         &#39;&#39;&#39;
         print(&#34;boardArray:&#34;)
-        print(&#39;\n&#39;.join([
-            &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-        ]))
+        print(&#39;\n&#39;.join(
+            [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))
 
     def squareWidth(self):
         &#39;&#39;&#39;
@@ -393,9 +452,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
         self.isStarted = True  # determines if the game has started to TRUE
         self.resetGame()  # reset the game
-        self.timer.start(self.timerSpeed,
-                         self)  # start the timer with the correct speed
-        # print(&#34;start () - timer is started&#34;)
+        self.timer.start(self.timerSpeed, self)
 
     def timerEvent(self, event):
         &#39;&#39;&#39;
@@ -405,19 +462,22 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): Timer event
         &#39;&#39;&#39;
-        # TODO adapter this code to handle your timers
         # if the timer that has &#39;ticked&#39; is the one in this class
         if event.timerId() == self.timer.timerId():
-            if Board.counter == 0:
-                print(&#34;Game over&#34;)
-            self.counter -= 1
-            # print(&#39;timerEvent()&#39;, self.counter)
-            self.updateTimerSignal.emit(self.counter)
+            # Get the current player
+            player = self.getCurrentPlayer()
+            # If there is no time remaining, then game over
+            if player.timeRemaining &lt;= 0:
+                self.updateGameOverSignal.emit()
+            else:
+                player.timeRemaining -= 1
+            # Emit the new state of the timer
+            self.updatePlayersTimer.emit(self.gameLogic.getPlayers())
         else:
             # if we do not handle an event pass it to the parent class
             super(Board, self).timerEvent(event)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event=None):
         &#39;&#39;&#39;
             Paints the board and the pieces of the game
 
@@ -435,40 +495,53 @@ class Board(QFrame):  # base the board on a QFrame widget
             Args:
                 event (Event): The mouse press event
         &#39;&#39;&#39;
-        clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-            event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-        print(&#34;mousePressEvent() - &#34; + clickLoc)
-        # TODO you could call some game logic here
+        # Get the current row/col where this click occured
         row, col = self.getSquareRowCol(event.x(), event.y())
-
-        provisionalBoard = self.boardArray
-        provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+        # On mouse press try and update the board logic
         try:
-            self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-        except RuntimeError:
-            print(&#34;Suicide rule in effect, try again&#34;)
-
+            self.gameLogic.updateBoard(row, col)
+        # Handle all of the different logical errors that can occur
+        except KOError:
+            self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+        except SuicideError:
+            self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+        except OccupiedError:
+            self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+        # Whatever happens, update the board
+        finally:
+            self.boardArray = self.gameLogic.board
+        # Emit the current player (this switches in the updateBoard logic)
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Emit the latest player objects
         self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Redraw the GUI
         self.update()
-        print(f&#34;Click in {col, row}&#34;)
-        self.clickLocationSignal.emit(clickLoc)
 
     def resetGame(self):
         &#39;&#39;&#39;
             Clears pieces from the board&#39;
         &#39;&#39;&#39;
-        # TODO write code to reset game
-        pass
+        # Reset the logic
+        self.gameLogic.reset()
+        # Reset the board
+        self.boardArray = self.gameLogic.board
+        # Emit the player objects with reset scores
+        self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+        # Emit the current player
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        # Redraw the GUI
+        self.update()
 
-    def tryMove(self, newX, newY):
+    def skip(self):
         &#39;&#39;&#39;
-            Tries to move a piece
-
-            Args:
-                newX (Int): X axis position
-                newY (Int): Y axis position
+            Handle skip / passes
         &#39;&#39;&#39;
-        pass
+        # Try and skip a go, unless there are two skips - then emit game over
+        try:
+            self.gameLogic.skip()
+            self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+        except GameOverPassError:
+            self.updateGameOverSignal.emit()
 
     def drawBoardSquares(self, painter):
         &#39;&#39;&#39;
@@ -664,27 +737,6 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 <p>If no argument is given, the constructor creates a new empty list.
 The argument must be an iterable if specified.</p></section>
 </dd>
-<dt id="app.board.Board.counter"><code class="name">var <span class="ident">counter</span></code></dt>
-<dd>
-<section class="desc"><p>int([x]) -&gt; integer
-int(x, base=10) -&gt; integer</p>
-<p>Convert a number or string to an integer, or return 0 if no arguments
-are given.
-If x is a number, return x.<strong>int</strong>().
-For floating point
-numbers, this truncates towards zero.</p>
-<p>If x is not a number or if base is given, then x must be a string,
-bytes, or bytearray instance representing an integer literal in the
-given base.
-The literal can be preceded by '+' or '-' and be surrounded
-by whitespace.
-The base defaults to 10.
-Valid bases are 0 and 2-36.
-Base 0 means to interpret the base from the string as an integer literal.</p>
-<pre><code>&gt;&gt;&gt; int('0b100', base=0)
-4
-</code></pre></section>
-</dd>
 <dt id="app.board.Board.timerSpeed"><code class="name">var <span class="ident">timerSpeed</span></code></dt>
 <dd>
 <section class="desc"><p>int([x]) -&gt; integer
@@ -709,12 +761,6 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="app.board.Board.clickLocationSignal"><code class="name flex">
-<span>def <span class="ident">clickLocationSignal</span></span>(<span>...)</span>
-</code></dt>
-<dd>
-<section class="desc"></section>
-</dd>
 <dt id="app.board.Board.drawBlackPiece"><code class="name flex">
 <span>def <span class="ident">drawBlackPiece</span></span>(<span>self, painter, col, row)</span>
 </code></dt>
@@ -967,6 +1013,30 @@ The row to draw at</p></section>
     self.drawPiece(painter, col, row, Qt.white)</code></pre>
 </details>
 </dd>
+<dt id="app.board.Board.getCurrentPlayer"><code class="name flex">
+<span>def <span class="ident">getCurrentPlayer</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Helper method to fetch the current player from the logic instance</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Player</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getCurrentPlayer(self):
+    &#39;&#39;&#39;
+        Helper method to fetch the current player from the logic instance
+
+        Returns:
+            Player
+    &#39;&#39;&#39;
+    return self.gameLogic.getPlayers()[self.gameLogic.player]</code></pre>
+</details>
+</dd>
 <dt id="app.board.Board.getSquareCoords"><code class="name flex">
 <span>def <span class="ident">getSquareCoords</span></span>(<span>self, col, row)</span>
 </code></dt>
@@ -1050,14 +1120,17 @@ The row to draw at</p></section>
     &#39;&#39;&#39;
         Initiates the board
     &#39;&#39;&#39;
-    self.timer = QBasicTimer()  # create a timer for the game
-    self.isStarted = False  # game is not currently started
-
+    # Timer for tracking time
+    self.timer = QBasicTimer()
+    # Denotes if the game is underway
+    self.isStarted = False
+    # The initial board
     self.boardArray = [[Piece.NoPiece for j in range(self.boardWidth)]
                        for i in range(self.boardHeight)]
+    # The gameLogic that controls play
     self.gameLogic = GameLogic(self.boardArray)
-    self.printBoardArray()
-    self.start()  # start the game which will start the timer</code></pre>
+    # Start the game
+    self.start()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.mousePressEvent"><code class="name flex">
@@ -1081,27 +1154,31 @@ The row to draw at</p></section>
         Args:
             event (Event): The mouse press event
     &#39;&#39;&#39;
-    clickLoc = &#34;click location [&#34; + str(event.x()) + &#34;,&#34; + str(
-        event.y()) + &#34;]&#34;  # the location where a mouse click was registered
-    print(&#34;mousePressEvent() - &#34; + clickLoc)
-    # TODO you could call some game logic here
+    # Get the current row/col where this click occured
     row, col = self.getSquareRowCol(event.x(), event.y())
-
-    provisionalBoard = self.boardArray
-    provisionalBoard[row][col] = self.gameLogic.getCurrentPlayer()
+    # On mouse press try and update the board logic
     try:
-        self.boardArray = self.gameLogic.updateBoard(self.boardArray)
-    except RuntimeError:
-        print(&#34;Suicide rule in effect, try again&#34;)
-
+        self.gameLogic.updateBoard(row, col)
+    # Handle all of the different logical errors that can occur
+    except KOError:
+        self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+    except SuicideError:
+        self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+    except OccupiedError:
+        self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+    # Whatever happens, update the board
+    finally:
+        self.boardArray = self.gameLogic.board
+    # Emit the current player (this switches in the updateBoard logic)
+    self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+    # Emit the latest player objects
     self.updateScoreSignal.emit(self.gameLogic.getPlayers())
-    self.update()
-    print(f&#34;Click in {col, row}&#34;)
-    self.clickLocationSignal.emit(clickLoc)</code></pre>
+    # Redraw the GUI
+    self.update()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.paintEvent"><code class="name flex">
-<span>def <span class="ident">paintEvent</span></span>(<span>self, event)</span>
+<span>def <span class="ident">paintEvent</span></span>(<span>self, event=None)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Paints the board and the pieces of the game</p>
@@ -1114,7 +1191,7 @@ The row to draw at</p></section>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def paintEvent(self, event):
+<pre><code class="python">def paintEvent(self, event=None):
     &#39;&#39;&#39;
         Paints the board and the pieces of the game
 
@@ -1127,22 +1204,29 @@ The row to draw at</p></section>
 </details>
 </dd>
 <dt id="app.board.Board.printBoardArray"><code class="name flex">
-<span>def <span class="ident">printBoardArray</span></span>(<span>self)</span>
+<span>def <span class="ident">printBoardArray</span></span>(<span>self, board)</span>
 </code></dt>
 <dd>
-<section class="desc"><p>Pretty prints the boardArray to the terminal</p></section>
+<section class="desc"><p>Pretty prints the boardArray to the terminal</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>board</code></strong> :&ensp;<code>list</code></dt>
+<dd>A board</dd>
+</dl></section>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def printBoardArray(self):
+<pre><code class="python">def printBoardArray(self, board):
     &#39;&#39;&#39;
         Pretty prints the boardArray to the terminal
+
+        Args:
+            board (list): A board
     &#39;&#39;&#39;
     print(&#34;boardArray:&#34;)
-    print(&#39;\n&#39;.join([
-        &#39;\t&#39;.join([str(cell) for cell in row]) for row in self.boardArray
-    ]))</code></pre>
+    print(&#39;\n&#39;.join(
+        [&#39;\t&#39;.join([str(cell) for cell in row]) for row in board]))</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.resetGame"><code class="name flex">
@@ -1158,8 +1242,37 @@ The row to draw at</p></section>
     &#39;&#39;&#39;
         Clears pieces from the board&#39;
     &#39;&#39;&#39;
-    # TODO write code to reset game
-    pass</code></pre>
+    # Reset the logic
+    self.gameLogic.reset()
+    # Reset the board
+    self.boardArray = self.gameLogic.board
+    # Emit the player objects with reset scores
+    self.updateScoreSignal.emit(self.gameLogic.getPlayers())
+    # Emit the current player
+    self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+    # Redraw the GUI
+    self.update()</code></pre>
+</details>
+</dd>
+<dt id="app.board.Board.skip"><code class="name flex">
+<span>def <span class="ident">skip</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Handle skip / passes</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def skip(self):
+    &#39;&#39;&#39;
+        Handle skip / passes
+    &#39;&#39;&#39;
+    # Try and skip a go, unless there are two skips - then emit game over
+    try:
+        self.gameLogic.skip()
+        self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
+    except GameOverPassError:
+        self.updateGameOverSignal.emit()</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.squareHeight"><code class="name flex">
@@ -1225,8 +1338,7 @@ The row to draw at</p></section>
     &#39;&#39;&#39;
     self.isStarted = True  # determines if the game has started to TRUE
     self.resetGame()  # reset the game
-    self.timer.start(self.timerSpeed,
-                     self)  # start the timer with the correct speed</code></pre>
+    self.timer.start(self.timerSpeed, self)</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.timerEvent"><code class="name flex">
@@ -1252,54 +1364,48 @@ Based on the timerSpeed variable.</p>
         Args:
             event (Event): Timer event
     &#39;&#39;&#39;
-    # TODO adapter this code to handle your timers
     # if the timer that has &#39;ticked&#39; is the one in this class
     if event.timerId() == self.timer.timerId():
-        if Board.counter == 0:
-            print(&#34;Game over&#34;)
-        self.counter -= 1
-        # print(&#39;timerEvent()&#39;, self.counter)
-        self.updateTimerSignal.emit(self.counter)
+        # Get the current player
+        player = self.getCurrentPlayer()
+        # If there is no time remaining, then game over
+        if player.timeRemaining &lt;= 0:
+            self.updateGameOverSignal.emit()
+        else:
+            player.timeRemaining -= 1
+        # Emit the new state of the timer
+        self.updatePlayersTimer.emit(self.gameLogic.getPlayers())
     else:
         # if we do not handle an event pass it to the parent class
         super(Board, self).timerEvent(event)</code></pre>
 </details>
 </dd>
-<dt id="app.board.Board.tryMove"><code class="name flex">
-<span>def <span class="ident">tryMove</span></span>(<span>self, newX, newY)</span>
-</code></dt>
-<dd>
-<section class="desc"><p>Tries to move a piece</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>newX</code></strong> :&ensp;<code>Int</code></dt>
-<dd>X axis position</dd>
-<dt><strong><code>newY</code></strong> :&ensp;<code>Int</code></dt>
-<dd>Y axis position</dd>
-</dl></section>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def tryMove(self, newX, newY):
-    &#39;&#39;&#39;
-        Tries to move a piece
-
-        Args:
-            newX (Int): X axis position
-            newY (Int): Y axis position
-    &#39;&#39;&#39;
-    pass</code></pre>
-</details>
-</dd>
-<dt id="app.board.Board.updateScoreSignal"><code class="name flex">
-<span>def <span class="ident">updateScoreSignal</span></span>(<span>...)</span>
+<dt id="app.board.Board.updateCurrentPlayerSignal"><code class="name flex">
+<span>def <span class="ident">updateCurrentPlayerSignal</span></span>(<span>...)</span>
 </code></dt>
 <dd>
 <section class="desc"></section>
 </dd>
-<dt id="app.board.Board.updateTimerSignal"><code class="name flex">
-<span>def <span class="ident">updateTimerSignal</span></span>(<span>...)</span>
+<dt id="app.board.Board.updateGameOverSignal"><code class="name flex">
+<span>def <span class="ident">updateGameOverSignal</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="app.board.Board.updateLogicSignal"><code class="name flex">
+<span>def <span class="ident">updateLogicSignal</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="app.board.Board.updatePlayersTimer"><code class="name flex">
+<span>def <span class="ident">updatePlayersTimer</span></span>(<span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="app.board.Board.updateScoreSignal"><code class="name flex">
+<span>def <span class="ident">updateScoreSignal</span></span>(<span>...)</span>
 </code></dt>
 <dd>
 <section class="desc"></section>
@@ -1324,12 +1430,10 @@ Based on the timerSpeed variable.</p>
 <ul>
 <li>
 <h4><code><a title="app.board.Board" href="#app.board.Board">Board</a></code></h4>
-<ul class="two-column">
+<ul class="">
 <li><code><a title="app.board.Board.boardHeight" href="#app.board.Board.boardHeight">boardHeight</a></code></li>
 <li><code><a title="app.board.Board.boardWidth" href="#app.board.Board.boardWidth">boardWidth</a></code></li>
 <li><code><a title="app.board.Board.checkColours" href="#app.board.Board.checkColours">checkColours</a></code></li>
-<li><code><a title="app.board.Board.clickLocationSignal" href="#app.board.Board.clickLocationSignal">clickLocationSignal</a></code></li>
-<li><code><a title="app.board.Board.counter" href="#app.board.Board.counter">counter</a></code></li>
 <li><code><a title="app.board.Board.drawBlackPiece" href="#app.board.Board.drawBlackPiece">drawBlackPiece</a></code></li>
 <li><code><a title="app.board.Board.drawBoardSquares" href="#app.board.Board.drawBoardSquares">drawBoardSquares</a></code></li>
 <li><code><a title="app.board.Board.drawEmptySpace" href="#app.board.Board.drawEmptySpace">drawEmptySpace</a></code></li>
@@ -1337,6 +1441,7 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.drawPieces" href="#app.board.Board.drawPieces">drawPieces</a></code></li>
 <li><code><a title="app.board.Board.drawSquare" href="#app.board.Board.drawSquare">drawSquare</a></code></li>
 <li><code><a title="app.board.Board.drawWhitePiece" href="#app.board.Board.drawWhitePiece">drawWhitePiece</a></code></li>
+<li><code><a title="app.board.Board.getCurrentPlayer" href="#app.board.Board.getCurrentPlayer">getCurrentPlayer</a></code></li>
 <li><code><a title="app.board.Board.getSquareCoords" href="#app.board.Board.getSquareCoords">getSquareCoords</a></code></li>
 <li><code><a title="app.board.Board.getSquareRowCol" href="#app.board.Board.getSquareRowCol">getSquareRowCol</a></code></li>
 <li><code><a title="app.board.Board.initBoard" href="#app.board.Board.initBoard">initBoard</a></code></li>
@@ -1344,14 +1449,17 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.paintEvent" href="#app.board.Board.paintEvent">paintEvent</a></code></li>
 <li><code><a title="app.board.Board.printBoardArray" href="#app.board.Board.printBoardArray">printBoardArray</a></code></li>
 <li><code><a title="app.board.Board.resetGame" href="#app.board.Board.resetGame">resetGame</a></code></li>
+<li><code><a title="app.board.Board.skip" href="#app.board.Board.skip">skip</a></code></li>
 <li><code><a title="app.board.Board.squareHeight" href="#app.board.Board.squareHeight">squareHeight</a></code></li>
 <li><code><a title="app.board.Board.squareWidth" href="#app.board.Board.squareWidth">squareWidth</a></code></li>
 <li><code><a title="app.board.Board.start" href="#app.board.Board.start">start</a></code></li>
 <li><code><a title="app.board.Board.timerEvent" href="#app.board.Board.timerEvent">timerEvent</a></code></li>
 <li><code><a title="app.board.Board.timerSpeed" href="#app.board.Board.timerSpeed">timerSpeed</a></code></li>
-<li><code><a title="app.board.Board.tryMove" href="#app.board.Board.tryMove">tryMove</a></code></li>
+<li><code><a title="app.board.Board.updateCurrentPlayerSignal" href="#app.board.Board.updateCurrentPlayerSignal">updateCurrentPlayerSignal</a></code></li>
+<li><code><a title="app.board.Board.updateGameOverSignal" href="#app.board.Board.updateGameOverSignal">updateGameOverSignal</a></code></li>
+<li><code><a title="app.board.Board.updateLogicSignal" href="#app.board.Board.updateLogicSignal">updateLogicSignal</a></code></li>
+<li><code><a title="app.board.Board.updatePlayersTimer" href="#app.board.Board.updatePlayersTimer">updatePlayersTimer</a></code></li>
 <li><code><a title="app.board.Board.updateScoreSignal" href="#app.board.Board.updateScoreSignal">updateScoreSignal</a></code></li>
-<li><code><a title="app.board.Board.updateTimerSignal" href="#app.board.Board.updateTimerSignal">updateTimerSignal</a></code></li>
 </ul>
 </li>
 </ul>
