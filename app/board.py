@@ -142,13 +142,14 @@ class Board(QFrame):  # base the board on a QFrame widget
         # On mouse press try and update the board logic
         try:
             self.gameLogic.updateBoard(row, col)
+            self.updateLogicSignal.emit("")
         # Handle all of the different logical errors that can occur
         except KOError:
-            self.updateLogicSignal.emit(f"KO, try again ({row, col})")
+            self.updateLogicSignal.emit(f"KO\ntry again")
         except SuicideError:
-            self.updateLogicSignal.emit(f"Suicide, try again ({row, col})")
+            self.updateLogicSignal.emit(f"Suicide\ntry again")
         except OccupiedError:
-            self.updateLogicSignal.emit(f"Occupied, try again ({row, col})")
+            self.updateLogicSignal.emit(f"Occupied\ntry again")
         # Whatever happens, update the board
         finally:
             self.boardArray = self.gameLogic.board

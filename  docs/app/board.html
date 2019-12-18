@@ -169,13 +169,14 @@ class Board(QFrame):  # base the board on a QFrame widget
         # On mouse press try and update the board logic
         try:
             self.gameLogic.updateBoard(row, col)
+            self.updateLogicSignal.emit(&#34;&#34;)
         # Handle all of the different logical errors that can occur
         except KOError:
-            self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;KO\ntry again&#34;)
         except SuicideError:
-            self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;Suicide\ntry again&#34;)
         except OccupiedError:
-            self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;Occupied\ntry again&#34;)
         # Whatever happens, update the board
         finally:
             self.boardArray = self.gameLogic.board
@@ -200,6 +201,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
         # Redraw the GUI
         self.update()
+
+    def undo(self):
+        &#39;&#39;&#39;
+            Undo last turn
+        &#39;&#39;&#39;
+        print(&#34;Not implemented&#34;)
 
     def skip(self):
         &#39;&#39;&#39;
@@ -500,13 +507,14 @@ class Board(QFrame):  # base the board on a QFrame widget
         # On mouse press try and update the board logic
         try:
             self.gameLogic.updateBoard(row, col)
+            self.updateLogicSignal.emit(&#34;&#34;)
         # Handle all of the different logical errors that can occur
         except KOError:
-            self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;KO\ntry again&#34;)
         except SuicideError:
-            self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;Suicide\ntry again&#34;)
         except OccupiedError:
-            self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+            self.updateLogicSignal.emit(f&#34;Occupied\ntry again&#34;)
         # Whatever happens, update the board
         finally:
             self.boardArray = self.gameLogic.board
@@ -531,6 +539,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
         # Redraw the GUI
         self.update()
+
+    def undo(self):
+        &#39;&#39;&#39;
+            Undo last turn
+        &#39;&#39;&#39;
+        print(&#34;Not implemented&#34;)
 
     def skip(self):
         &#39;&#39;&#39;
@@ -1159,13 +1173,14 @@ The row to draw at</p></section>
     # On mouse press try and update the board logic
     try:
         self.gameLogic.updateBoard(row, col)
+        self.updateLogicSignal.emit(&#34;&#34;)
     # Handle all of the different logical errors that can occur
     except KOError:
-        self.updateLogicSignal.emit(f&#34;KO, try again ({row, col})&#34;)
+        self.updateLogicSignal.emit(f&#34;KO\ntry again&#34;)
     except SuicideError:
-        self.updateLogicSignal.emit(f&#34;Suicide, try again ({row, col})&#34;)
+        self.updateLogicSignal.emit(f&#34;Suicide\ntry again&#34;)
     except OccupiedError:
-        self.updateLogicSignal.emit(f&#34;Occupied, try again ({row, col})&#34;)
+        self.updateLogicSignal.emit(f&#34;Occupied\ntry again&#34;)
     # Whatever happens, update the board
     finally:
         self.boardArray = self.gameLogic.board
@@ -1380,6 +1395,22 @@ Based on the timerSpeed variable.</p>
         super(Board, self).timerEvent(event)</code></pre>
 </details>
 </dd>
+<dt id="app.board.Board.undo"><code class="name flex">
+<span>def <span class="ident">undo</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Undo last turn</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def undo(self):
+    &#39;&#39;&#39;
+        Undo last turn
+    &#39;&#39;&#39;
+    print(&#34;Not implemented&#34;)</code></pre>
+</details>
+</dd>
 <dt id="app.board.Board.updateCurrentPlayerSignal"><code class="name flex">
 <span>def <span class="ident">updateCurrentPlayerSignal</span></span>(<span>...)</span>
 </code></dt>
@@ -1455,6 +1486,7 @@ Based on the timerSpeed variable.</p>
 <li><code><a title="app.board.Board.start" href="#app.board.Board.start">start</a></code></li>
 <li><code><a title="app.board.Board.timerEvent" href="#app.board.Board.timerEvent">timerEvent</a></code></li>
 <li><code><a title="app.board.Board.timerSpeed" href="#app.board.Board.timerSpeed">timerSpeed</a></code></li>
+<li><code><a title="app.board.Board.undo" href="#app.board.Board.undo">undo</a></code></li>
 <li><code><a title="app.board.Board.updateCurrentPlayerSignal" href="#app.board.Board.updateCurrentPlayerSignal">updateCurrentPlayerSignal</a></code></li>
 <li><code><a title="app.board.Board.updateGameOverSignal" href="#app.board.Board.updateGameOverSignal">updateGameOverSignal</a></code></li>
 <li><code><a title="app.board.Board.updateLogicSignal" href="#app.board.Board.updateLogicSignal">updateLogicSignal</a></code></li>

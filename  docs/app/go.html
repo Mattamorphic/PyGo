@@ -30,7 +30,7 @@
 &#39;&#39;&#39;
 from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
                              QDialogButtonBox, QLabel, QToolBar, QPushButton,
-                             QVBoxLayout)
+                             QHBoxLayout, QVBoxLayout, QWidget)
 from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
 from .score_board import ScoreBoard
@@ -82,14 +82,23 @@ class Go(QMainWindow):
         # This should be at the top
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
         # If there are no players, then just await state
+
+        player = QWidget()
+        playerLayout = QHBoxLayout()
+        playerLayout.addWidget(QLabel(&#34;Player:&#34;))
         self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+        playerLayout.addWidget(self.currentPlayerLabel)
+        playerLayout.addWidget(QLabel(&#34;with&#34;))
         # Create a timer for the player
         self.playerTimeDisplay = self.makeLCD()
+        playerLayout.addWidget(self.playerTimeDisplay)
+        playerLayout.addWidget(QLabel(&#34;seconds left&#34;))
+        player.setLayout(playerLayout)
+
         # Get the current player from the board
         self.updatePlayer(self.board.getCurrentPlayer())
         # Add these widgets to the toolbar
-        self.toolbar.addWidget(self.currentPlayerLabel)
-        self.toolbar.addWidget(self.playerTimeDisplay)
+        self.toolbar.addWidget(player)
 
         # Create toolbar buttons for the player
 
@@ -141,12 +150,14 @@ class Go(QMainWindow):
             Args:
                 player (Player): The current player
         &#39;&#39;&#39;
-        self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
-        background = f&#34;rgb({player.getColor()})&#34;
+        self.currentPlayerLabel.setText(f&#34;{player.name}&#34;)
+        background = &#34;rgb(&#34; + &#34;,&#34;.join([str(v)
+                                        for v in player.getColor()]) + &#34;)&#34;
         self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
             QLabel {
                 background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
                 color :  rgb(127, 127, 127);
+                font-weight: bold
             }
         &#34;&#34;&#34;)
 
@@ -275,14 +286,23 @@ class Go(QMainWindow):
         # This should be at the top
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
         # If there are no players, then just await state
+
+        player = QWidget()
+        playerLayout = QHBoxLayout()
+        playerLayout.addWidget(QLabel(&#34;Player:&#34;))
         self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+        playerLayout.addWidget(self.currentPlayerLabel)
+        playerLayout.addWidget(QLabel(&#34;with&#34;))
         # Create a timer for the player
         self.playerTimeDisplay = self.makeLCD()
+        playerLayout.addWidget(self.playerTimeDisplay)
+        playerLayout.addWidget(QLabel(&#34;seconds left&#34;))
+        player.setLayout(playerLayout)
+
         # Get the current player from the board
         self.updatePlayer(self.board.getCurrentPlayer())
         # Add these widgets to the toolbar
-        self.toolbar.addWidget(self.currentPlayerLabel)
-        self.toolbar.addWidget(self.playerTimeDisplay)
+        self.toolbar.addWidget(player)
 
         # Create toolbar buttons for the player
 
@@ -334,12 +354,14 @@ class Go(QMainWindow):
             Args:
                 player (Player): The current player
         &#39;&#39;&#39;
-        self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
-        background = f&#34;rgb({player.getColor()})&#34;
+        self.currentPlayerLabel.setText(f&#34;{player.name}&#34;)
+        background = &#34;rgb(&#34; + &#34;,&#34;.join([str(v)
+                                        for v in player.getColor()]) + &#34;)&#34;
         self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
             QLabel {
                 background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
                 color :  rgb(127, 127, 127);
+                font-weight: bold
             }
         &#34;&#34;&#34;)
 
@@ -510,14 +532,23 @@ class Go(QMainWindow):
     # This should be at the top
     self.addToolBar(Qt.TopToolBarArea, self.toolbar)
     # If there are no players, then just await state
+
+    player = QWidget()
+    playerLayout = QHBoxLayout()
+    playerLayout.addWidget(QLabel(&#34;Player:&#34;))
     self.currentPlayerLabel = QLabel(&#34;Awaiting game&#34;)
+    playerLayout.addWidget(self.currentPlayerLabel)
+    playerLayout.addWidget(QLabel(&#34;with&#34;))
     # Create a timer for the player
     self.playerTimeDisplay = self.makeLCD()
+    playerLayout.addWidget(self.playerTimeDisplay)
+    playerLayout.addWidget(QLabel(&#34;seconds left&#34;))
+    player.setLayout(playerLayout)
+
     # Get the current player from the board
     self.updatePlayer(self.board.getCurrentPlayer())
     # Add these widgets to the toolbar
-    self.toolbar.addWidget(self.currentPlayerLabel)
-    self.toolbar.addWidget(self.playerTimeDisplay)
+    self.toolbar.addWidget(player)
 
     # Create toolbar buttons for the player
 
@@ -682,12 +713,14 @@ def updatePlayer(self, player):
         Args:
             player (Player): The current player
     &#39;&#39;&#39;
-    self.currentPlayerLabel.setText(f&#34;Player: {player.name} turn&#34;)
-    background = f&#34;rgb({player.getColor()})&#34;
+    self.currentPlayerLabel.setText(f&#34;{player.name}&#34;)
+    background = &#34;rgb(&#34; + &#34;,&#34;.join([str(v)
+                                    for v in player.getColor()]) + &#34;)&#34;
     self.currentPlayerLabel.setStyleSheet(&#34;&#34;&#34;
         QLabel {
             background-color : &#34;&#34;&#34; + background + &#34;&#34;&#34;;
             color :  rgb(127, 127, 127);
+            font-weight: bold
         }
     &#34;&#34;&#34;)</code></pre>
 </details>

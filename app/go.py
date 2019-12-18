@@ -3,7 +3,7 @@
 '''
 from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
                              QDialogButtonBox, QLabel, QToolBar, QPushButton,
-                             QVBoxLayout)
+                             QHBoxLayout, QVBoxLayout, QWidget)
 from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
 from .score_board import ScoreBoard
@@ -55,14 +55,23 @@ class Go(QMainWindow):
         # This should be at the top
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
         # If there are no players, then just await state
+
+        player = QWidget()
+        playerLayout = QHBoxLayout()
+        playerLayout.addWidget(QLabel("Player:"))
         self.currentPlayerLabel = QLabel("Awaiting game")
+        playerLayout.addWidget(self.currentPlayerLabel)
+        playerLayout.addWidget(QLabel("with"))
         # Create a timer for the player
         self.playerTimeDisplay = self.makeLCD()
+        playerLayout.addWidget(self.playerTimeDisplay)
+        playerLayout.addWidget(QLabel("seconds left"))
+        player.setLayout(playerLayout)
+
         # Get the current player from the board
         self.updatePlayer(self.board.getCurrentPlayer())
         # Add these widgets to the toolbar
-        self.toolbar.addWidget(self.currentPlayerLabel)
-        self.toolbar.addWidget(self.playerTimeDisplay)
+        self.toolbar.addWidget(player)
 
         # Create toolbar buttons for the player
 
@@ -114,12 +123,14 @@ class Go(QMainWindow):
             Args:
                 player (Player): The current player
         '''
-        self.currentPlayerLabel.setText(f"Player: {player.name} turn")
-        background = f"rgb({player.getColor()})"
+        self.currentPlayerLabel.setText(f"{player.name}")
+        background = "rgb(" + ",".join([str(v)
+                                        for v in player.getColor()]) + ")"
         self.currentPlayerLabel.setStyleSheet("""
             QLabel {
                 background-color : """ + background + """;
                 color :  rgb(127, 127, 127);
+                font-weight: bold
             }
         """)
 

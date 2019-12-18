@@ -28,8 +28,8 @@
 <pre><code class="python">&#39;&#39;&#39;
     Represents the Score Board
 &#39;&#39;&#39;
-# TODO import additional Widget classes as desired
-from PyQt5.QtWidgets import (QDockWidget, QVBoxLayout, QWidget, QLabel)
+from PyQt5.QtWidgets import (QDockWidget, QVBoxLayout, QWidget, QLabel,
+                             QSizePolicy)
 from PyQt5.QtCore import pyqtSlot
 from .piece import Piece
 
@@ -52,25 +52,28 @@ class ScoreBoard(QDockWidget):
         # create a widget to hold other widgets
         self.mainWidget = QWidget()
         self.mainLayout = QVBoxLayout()
+        self.mainWidget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # create two labels which will be updated by signals
         self.players = {
             Piece.White: {
-                &#34;scoreLabel&#34;: QLabel(&#34;White: 0&#34;),
-                &#34;timeLabel&#34;: QLabel(&#34;White Time Remaining: 120&#34;),
-                &#34;score&#34;: 0
+                &#34;scoreLabel&#34;:
+                self.makeScoreLabel(&#34;White: 0&#34;, (0, 0, 0), (255, 255, 255)),
+                &#34;score&#34;:
+                0
             },
             Piece.Black: {
-                &#34;scoreLabel&#34;: QLabel(&#34;Black: 0&#34;),
-                &#34;timeLabel&#34;: QLabel(&#34;Black Time Remaining: 120&#34;),
-                &#34;score&#34;: 0
+                &#34;scoreLabel&#34;:
+                self.makeScoreLabel(&#34;White: 0&#34;, (255, 255, 255), (0, 0, 0)),
+                &#34;score&#34;:
+                0
             }
         }
-        self.logicMessage = QLabel(&#34;Take your turn&#34;)
+        self.logicMessage = QLabel()
+        self.updateLogicMessage()
         self.mainWidget.setLayout(self.mainLayout)
         for id, player in self.players.items():
             self.mainLayout.addWidget(player[&#34;scoreLabel&#34;])
-            self.mainLayout.addWidget(player[&#34;timeLabel&#34;])
         self.mainLayout.addWidget(self.logicMessage)
 
         self.setWidget(self.mainWidget)
@@ -90,22 +93,23 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         &#39;&#39;&#39;
-        board.updatePlayersTimer.connect(self.updatePlayersTimer)
         board.updateScoreSignal.connect(self.updateScore)
         board.updateLogicSignal.connect(self.updateLogicMessage)
 
-    # Ensure the slot is receiving an argument of the type &#39;int&#39;
-    @pyqtSlot(object)
-    def updatePlayersTimer(self, players):
-        &#39;&#39;&#39;
-            Updates the time remaining label to show the time remaining
-
-            Args:
-                players (Dict): Players
-        &#39;&#39;&#39;
-        for id, player in players.items():
-            self.players[id][&#34;timeLabel&#34;].setText(
-                f&#34;{player.getName()}: {player.getTimeRemaining()}&#34;)
+    def makeScoreLabel(self, message, background, foreground):
+        label = QLabel(message)
+        label.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color: rgb(&#34;&#34;&#34; +
+                            &#34;,&#34;.join([str(v) for v in background]) + &#34;&#34;&#34;);
+                color: rgb(&#34;&#34;&#34; + &#34;,&#34;.join([str(v) for v in foreground]) + &#34;&#34;&#34;);
+                font-size: 20px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                text-align: center;
+            }
+        &#34;&#34;&#34;)
+        return label
 
     @pyqtSlot(object)
     def updateScore(self, players):
@@ -116,7 +120,22 @@ class ScoreBoard(QDockWidget):
             self.players[id][&#34;score&#34;] = score
 
     @pyqtSlot(str)
-    def updateLogicMessage(self, message):
+    def updateLogicMessage(self, message=None):
+        background = &#34;red&#34;
+        if not message:
+            background = &#34;green&#34;
+            message = &#34;Valid&#34;
+        self.logicMessage.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color: &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+                color: white;
+                font-size: 20px;
+                margin-top:20px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                text-align: center;
+            }
+        &#34;&#34;&#34;)
         self.logicMessage.setText(message)</code></pre>
 </details>
 </section>
@@ -156,25 +175,28 @@ class ScoreBoard(QDockWidget):
         # create a widget to hold other widgets
         self.mainWidget = QWidget()
         self.mainLayout = QVBoxLayout()
+        self.mainWidget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # create two labels which will be updated by signals
         self.players = {
             Piece.White: {
-                &#34;scoreLabel&#34;: QLabel(&#34;White: 0&#34;),
-                &#34;timeLabel&#34;: QLabel(&#34;White Time Remaining: 120&#34;),
-                &#34;score&#34;: 0
+                &#34;scoreLabel&#34;:
+                self.makeScoreLabel(&#34;White: 0&#34;, (0, 0, 0), (255, 255, 255)),
+                &#34;score&#34;:
+                0
             },
             Piece.Black: {
-                &#34;scoreLabel&#34;: QLabel(&#34;Black: 0&#34;),
-                &#34;timeLabel&#34;: QLabel(&#34;Black Time Remaining: 120&#34;),
-                &#34;score&#34;: 0
+                &#34;scoreLabel&#34;:
+                self.makeScoreLabel(&#34;White: 0&#34;, (255, 255, 255), (0, 0, 0)),
+                &#34;score&#34;:
+                0
             }
         }
-        self.logicMessage = QLabel(&#34;Take your turn&#34;)
+        self.logicMessage = QLabel()
+        self.updateLogicMessage()
         self.mainWidget.setLayout(self.mainLayout)
         for id, player in self.players.items():
             self.mainLayout.addWidget(player[&#34;scoreLabel&#34;])
-            self.mainLayout.addWidget(player[&#34;timeLabel&#34;])
         self.mainLayout.addWidget(self.logicMessage)
 
         self.setWidget(self.mainWidget)
@@ -194,22 +216,23 @@ class ScoreBoard(QDockWidget):
             Args:
                 board (Board): The board
         &#39;&#39;&#39;
-        board.updatePlayersTimer.connect(self.updatePlayersTimer)
         board.updateScoreSignal.connect(self.updateScore)
         board.updateLogicSignal.connect(self.updateLogicMessage)
 
-    # Ensure the slot is receiving an argument of the type &#39;int&#39;
-    @pyqtSlot(object)
-    def updatePlayersTimer(self, players):
-        &#39;&#39;&#39;
-            Updates the time remaining label to show the time remaining
-
-            Args:
-                players (Dict): Players
-        &#39;&#39;&#39;
-        for id, player in players.items():
-            self.players[id][&#34;timeLabel&#34;].setText(
-                f&#34;{player.getName()}: {player.getTimeRemaining()}&#34;)
+    def makeScoreLabel(self, message, background, foreground):
+        label = QLabel(message)
+        label.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color: rgb(&#34;&#34;&#34; +
+                            &#34;,&#34;.join([str(v) for v in background]) + &#34;&#34;&#34;);
+                color: rgb(&#34;&#34;&#34; + &#34;,&#34;.join([str(v) for v in foreground]) + &#34;&#34;&#34;);
+                font-size: 20px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                text-align: center;
+            }
+        &#34;&#34;&#34;)
+        return label
 
     @pyqtSlot(object)
     def updateScore(self, players):
@@ -220,7 +243,22 @@ class ScoreBoard(QDockWidget):
             self.players[id][&#34;score&#34;] = score
 
     @pyqtSlot(str)
-    def updateLogicMessage(self, message):
+    def updateLogicMessage(self, message=None):
+        background = &#34;red&#34;
+        if not message:
+            background = &#34;green&#34;
+            message = &#34;Valid&#34;
+        self.logicMessage.setStyleSheet(&#34;&#34;&#34;
+            QLabel {
+                background-color: &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+                color: white;
+                font-size: 20px;
+                margin-top:20px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                text-align: center;
+            }
+        &#34;&#34;&#34;)
         self.logicMessage.setText(message)</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -271,25 +309,28 @@ you do not need to implement this method</p></section>
     # create a widget to hold other widgets
     self.mainWidget = QWidget()
     self.mainLayout = QVBoxLayout()
+    self.mainWidget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
     # create two labels which will be updated by signals
     self.players = {
         Piece.White: {
-            &#34;scoreLabel&#34;: QLabel(&#34;White: 0&#34;),
-            &#34;timeLabel&#34;: QLabel(&#34;White Time Remaining: 120&#34;),
-            &#34;score&#34;: 0
+            &#34;scoreLabel&#34;:
+            self.makeScoreLabel(&#34;White: 0&#34;, (0, 0, 0), (255, 255, 255)),
+            &#34;score&#34;:
+            0
         },
         Piece.Black: {
-            &#34;scoreLabel&#34;: QLabel(&#34;Black: 0&#34;),
-            &#34;timeLabel&#34;: QLabel(&#34;Black Time Remaining: 120&#34;),
-            &#34;score&#34;: 0
+            &#34;scoreLabel&#34;:
+            self.makeScoreLabel(&#34;White: 0&#34;, (255, 255, 255), (0, 0, 0)),
+            &#34;score&#34;:
+            0
         }
     }
-    self.logicMessage = QLabel(&#34;Take your turn&#34;)
+    self.logicMessage = QLabel()
+    self.updateLogicMessage()
     self.mainWidget.setLayout(self.mainLayout)
     for id, player in self.players.items():
         self.mainLayout.addWidget(player[&#34;scoreLabel&#34;])
-        self.mainLayout.addWidget(player[&#34;timeLabel&#34;])
     self.mainLayout.addWidget(self.logicMessage)
 
     self.setWidget(self.mainWidget)
@@ -317,13 +358,37 @@ you do not need to implement this method</p></section>
         Args:
             board (Board): The board
     &#39;&#39;&#39;
-    board.updatePlayersTimer.connect(self.updatePlayersTimer)
     board.updateScoreSignal.connect(self.updateScore)
     board.updateLogicSignal.connect(self.updateLogicMessage)</code></pre>
 </details>
 </dd>
+<dt id="app.score_board.ScoreBoard.makeScoreLabel"><code class="name flex">
+<span>def <span class="ident">makeScoreLabel</span></span>(<span>self, message, background, foreground)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def makeScoreLabel(self, message, background, foreground):
+    label = QLabel(message)
+    label.setStyleSheet(&#34;&#34;&#34;
+        QLabel {
+            background-color: rgb(&#34;&#34;&#34; +
+                        &#34;,&#34;.join([str(v) for v in background]) + &#34;&#34;&#34;);
+            color: rgb(&#34;&#34;&#34; + &#34;,&#34;.join([str(v) for v in foreground]) + &#34;&#34;&#34;);
+            font-size: 20px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+    &#34;&#34;&#34;)
+    return label</code></pre>
+</details>
+</dd>
 <dt id="app.score_board.ScoreBoard.updateLogicMessage"><code class="name flex">
-<span>def <span class="ident">updateLogicMessage</span></span>(<span>self, message)</span>
+<span>def <span class="ident">updateLogicMessage</span></span>(<span>self, message=None)</span>
 </code></dt>
 <dd>
 <section class="desc"></section>
@@ -332,35 +397,23 @@ you do not need to implement this method</p></section>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@pyqtSlot(str)
-def updateLogicMessage(self, message):
+def updateLogicMessage(self, message=None):
+    background = &#34;red&#34;
+    if not message:
+        background = &#34;green&#34;
+        message = &#34;Valid&#34;
+    self.logicMessage.setStyleSheet(&#34;&#34;&#34;
+        QLabel {
+            background-color: &#34;&#34;&#34; + background + &#34;&#34;&#34;;
+            color: white;
+            font-size: 20px;
+            margin-top:20px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+    &#34;&#34;&#34;)
     self.logicMessage.setText(message)</code></pre>
-</details>
-</dd>
-<dt id="app.score_board.ScoreBoard.updatePlayersTimer"><code class="name flex">
-<span>def <span class="ident">updatePlayersTimer</span></span>(<span>self, players)</span>
-</code></dt>
-<dd>
-<section class="desc"><p>Updates the time remaining label to show the time remaining</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>players</code></strong> :&ensp;<code>Dict</code></dt>
-<dd>Players</dd>
-</dl></section>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@pyqtSlot(object)
-def updatePlayersTimer(self, players):
-    &#39;&#39;&#39;
-        Updates the time remaining label to show the time remaining
-
-        Args:
-            players (Dict): Players
-    &#39;&#39;&#39;
-    for id, player in players.items():
-        self.players[id][&#34;timeLabel&#34;].setText(
-            f&#34;{player.getName()}: {player.getTimeRemaining()}&#34;)</code></pre>
 </details>
 </dd>
 <dt id="app.score_board.ScoreBoard.updateScore"><code class="name flex">
@@ -405,8 +458,8 @@ def updateScore(self, players):
 <li><code><a title="app.score_board.ScoreBoard.center" href="#app.score_board.ScoreBoard.center">center</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.initUI" href="#app.score_board.ScoreBoard.initUI">initUI</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.makeConnection" href="#app.score_board.ScoreBoard.makeConnection">makeConnection</a></code></li>
+<li><code><a title="app.score_board.ScoreBoard.makeScoreLabel" href="#app.score_board.ScoreBoard.makeScoreLabel">makeScoreLabel</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.updateLogicMessage" href="#app.score_board.ScoreBoard.updateLogicMessage">updateLogicMessage</a></code></li>
-<li><code><a title="app.score_board.ScoreBoard.updatePlayersTimer" href="#app.score_board.ScoreBoard.updatePlayersTimer">updatePlayersTimer</a></code></li>
 <li><code><a title="app.score_board.ScoreBoard.updateScore" href="#app.score_board.ScoreBoard.updateScore">updateScore</a></code></li>
 </ul>
 </li>
