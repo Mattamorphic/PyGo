@@ -110,7 +110,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             player = self.getCurrentPlayer()
             # If there is no time remaining, then game over
             if player.timeRemaining <= 0:
-                self.updateGameOverSignal.emit()
+                self.updateGameOverSignal.emit(self.gameLogic.getLeadingPlayer())
             else:
                 player.timeRemaining -= 1
             # Emit the new state of the timer
