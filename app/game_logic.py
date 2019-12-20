@@ -132,7 +132,6 @@ class GameLogic:
             raise SuicideError()
 
         # Update the players
-
         # Players current piece count (used for suicide rule checks)
         self.players[self.player].setPieces(playerPieceCount)
         # Players current score
@@ -283,7 +282,7 @@ class GameLogic:
             group = [opponentPosition]
             # while we have pieces in the opponent group bucket
             while opponentGroup:
-                # Get the last element
+                # Get the last elementgit
                 position = opponentGroup.pop()
                 # Get the adjacents for this piece
                 for adjacent in self.getAdjacents(*position):
@@ -346,6 +345,19 @@ class GameLogic:
             return self.board[row][col] == piece
         except IndexError:
             raise IndexError("list index out of range")
+
+    '''
+        Get the player with the highest score
+
+        Returns:
+            Player
+    '''
+    def getLeadingPlayer(self):
+        winner = self.players[Piece.White]
+        for id, player in self.players.items():
+            if player.getScore() > winner.getScore():
+                winner = player
+        return winner
 
 
 class Player:

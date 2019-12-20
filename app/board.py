@@ -20,7 +20,7 @@ class Board(QFrame):  # base the board on a QFrame widget
     # Signal for for the current player
     updateCurrentPlayerSignal = pyqtSignal(object)
     # Signal for game over
-    updateGameOverSignal = pyqtSignal()
+    updateGameOverSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -191,7 +191,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             self.gameLogic.skip()
             self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
         except GameOverPassError:
-            self.updateGameOverSignal.emit()
+            self.updateGameOverSignal.emit(self.gameLogic.getLeadingPlayer())
 
     def drawBoardSquares(self, painter):
         '''

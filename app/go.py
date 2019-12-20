@@ -90,7 +90,6 @@ class Go(QMainWindow):
         undo.clicked.connect(self.board.undo)
         self.toolbar.addWidget(undo)
 
-
         # Menu
         menuBar = QMenuBar(self)
         menuBar.setNativeMenuBar(False)
@@ -161,8 +160,8 @@ class Go(QMainWindow):
         '''
         self.board.skip()
 
-    @pyqtSlot()
-    def updateGameOver(self):
+    @pyqtSlot(object)
+    def updateGameOver(self, player):
         '''
             On GameOver, trigger a dialog
         '''
@@ -174,11 +173,10 @@ class Go(QMainWindow):
         layout.addWidget(QLabel("Game Over"))
 
         # Display winner
-        ## TODO: Add winner info
-
+        layout.addWidget(
+            QLabel(f"{player.getName()} wins with {player.getScore()} points"))
         # Create a button holder for the dialog
         buttonBox = QDialogButtonBox(Qt.Vertical)
-
 
         # Add some options
         buttonBox.addButton("&Restart", QDialogButtonBox.AcceptRole)
