@@ -47,7 +47,7 @@ class Board(QFrame):  # base the board on a QFrame widget
     # Signal for for the current player
     updateCurrentPlayerSignal = pyqtSignal(object)
     # Signal for game over
-    updateGameOverSignal = pyqtSignal()
+    updateGameOverSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -206,6 +206,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
             Undo last turn
         &#39;&#39;&#39;
+        # TODO implement undo
         print(&#34;Not implemented&#34;)
 
     def skip(self):
@@ -217,7 +218,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             self.gameLogic.skip()
             self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
         except GameOverPassError:
-            self.updateGameOverSignal.emit()
+            self.updateGameOverSignal.emit(self.gameLogic.getLeadingPlayer())
 
     def drawBoardSquares(self, painter):
         &#39;&#39;&#39;
@@ -385,7 +386,7 @@ class Board(QFrame):  # base the board on a QFrame widget
     # Signal for for the current player
     updateCurrentPlayerSignal = pyqtSignal(object)
     # Signal for game over
-    updateGameOverSignal = pyqtSignal()
+    updateGameOverSignal = pyqtSignal(object)
 
     boardWidth = 7
     boardHeight = 7
@@ -544,6 +545,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         &#39;&#39;&#39;
             Undo last turn
         &#39;&#39;&#39;
+        # TODO implement undo
         print(&#34;Not implemented&#34;)
 
     def skip(self):
@@ -555,7 +557,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             self.gameLogic.skip()
             self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
         except GameOverPassError:
-            self.updateGameOverSignal.emit()
+            self.updateGameOverSignal.emit(self.gameLogic.getLeadingPlayer())
 
     def drawBoardSquares(self, painter):
         &#39;&#39;&#39;
@@ -1287,7 +1289,7 @@ The row to draw at</p></section>
         self.gameLogic.skip()
         self.updateCurrentPlayerSignal.emit(self.getCurrentPlayer())
     except GameOverPassError:
-        self.updateGameOverSignal.emit()</code></pre>
+        self.updateGameOverSignal.emit(self.gameLogic.getLeadingPlayer())</code></pre>
 </details>
 </dd>
 <dt id="app.board.Board.squareHeight"><code class="name flex">
@@ -1408,6 +1410,7 @@ Based on the timerSpeed variable.</p>
     &#39;&#39;&#39;
         Undo last turn
     &#39;&#39;&#39;
+    # TODO implement undo
     print(&#34;Not implemented&#34;)</code></pre>
 </details>
 </dd>

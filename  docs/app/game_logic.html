@@ -159,7 +159,6 @@ class GameLogic:
             raise SuicideError()
 
         # Update the players
-
         # Players current piece count (used for suicide rule checks)
         self.players[self.player].setPieces(playerPieceCount)
         # Players current score
@@ -310,7 +309,7 @@ class GameLogic:
             group = [opponentPosition]
             # while we have pieces in the opponent group bucket
             while opponentGroup:
-                # Get the last element
+                # Get the last elementgit
                 position = opponentGroup.pop()
                 # Get the adjacents for this piece
                 for adjacent in self.getAdjacents(*position):
@@ -373,6 +372,19 @@ class GameLogic:
             return self.board[row][col] == piece
         except IndexError:
             raise IndexError(&#34;list index out of range&#34;)
+
+    &#39;&#39;&#39;
+        Get the player with the highest score
+
+        Returns:
+            Player
+    &#39;&#39;&#39;
+    def getLeadingPlayer(self):
+        winner = self.players[Piece.White]
+        for id, player in self.players.items():
+            if player.getScore() &gt; winner.getScore():
+                winner = player
+        return winner
 
 
 class Player:
@@ -629,7 +641,6 @@ class OccupiedError(Exception):
             raise SuicideError()
 
         # Update the players
-
         # Players current piece count (used for suicide rule checks)
         self.players[self.player].setPieces(playerPieceCount)
         # Players current score
@@ -780,7 +791,7 @@ class OccupiedError(Exception):
             group = [opponentPosition]
             # while we have pieces in the opponent group bucket
             while opponentGroup:
-                # Get the last element
+                # Get the last elementgit
                 position = opponentGroup.pop()
                 # Get the adjacents for this piece
                 for adjacent in self.getAdjacents(*position):
@@ -842,7 +853,20 @@ class OccupiedError(Exception):
         try:
             return self.board[row][col] == piece
         except IndexError:
-            raise IndexError(&#34;list index out of range&#34;)</code></pre>
+            raise IndexError(&#34;list index out of range&#34;)
+
+    &#39;&#39;&#39;
+        Get the player with the highest score
+
+        Returns:
+            Player
+    &#39;&#39;&#39;
+    def getLeadingPlayer(self):
+        winner = self.players[Piece.White]
+        for id, player in self.players.items():
+            if player.getScore() &gt; winner.getScore():
+                winner = player
+        return winner</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -1038,6 +1062,23 @@ The current pieces</p>
             Int
     &#39;&#39;&#39;
     return len(self.scanBoard(player, Piece.NoPiece))</code></pre>
+</details>
+</dd>
+<dt id="app.game_logic.GameLogic.getLeadingPlayer"><code class="name flex">
+<span>def <span class="ident">getLeadingPlayer</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getLeadingPlayer(self):
+    winner = self.players[Piece.White]
+    for id, player in self.players.items():
+        if player.getScore() &gt; winner.getScore():
+            winner = player
+    return winner</code></pre>
 </details>
 </dd>
 <dt id="app.game_logic.GameLogic.getPlayer"><code class="name flex">
@@ -1323,7 +1364,7 @@ col
         group = [opponentPosition]
         # while we have pieces in the opponent group bucket
         while opponentGroup:
-            # Get the last element
+            # Get the last elementgit
             position = opponentGroup.pop()
             # Get the adjacents for this piece
             for adjacent in self.getAdjacents(*position):
@@ -1455,7 +1496,6 @@ col
         raise SuicideError()
 
     # Update the players
-
     # Players current piece count (used for suicide rule checks)
     self.players[self.player].setPieces(playerPieceCount)
     # Players current score
@@ -1883,6 +1923,7 @@ Base 0 means to interpret the base from the string as an integer literal.</p>
 <li><code><a title="app.game_logic.GameLogic.getAdjacents" href="#app.game_logic.GameLogic.getAdjacents">getAdjacents</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getBoard" href="#app.game_logic.GameLogic.getBoard">getBoard</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getCapturedLandCount" href="#app.game_logic.GameLogic.getCapturedLandCount">getCapturedLandCount</a></code></li>
+<li><code><a title="app.game_logic.GameLogic.getLeadingPlayer" href="#app.game_logic.GameLogic.getLeadingPlayer">getLeadingPlayer</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getPlayer" href="#app.game_logic.GameLogic.getPlayer">getPlayer</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getPlayers" href="#app.game_logic.GameLogic.getPlayers">getPlayers</a></code></li>
 <li><code><a title="app.game_logic.GameLogic.getPositions" href="#app.game_logic.GameLogic.getPositions">getPositions</a></code></li>

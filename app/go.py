@@ -3,8 +3,8 @@
 '''
 from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
                              QDialogButtonBox, QLabel, QToolBar, QPushButton,
-                             QHBoxLayout, QVBoxLayout, QMenuBar,QMessageBox,
-                              QWidget,QAction,qApp)
+                             QHBoxLayout, QVBoxLayout, QMenuBar, QMessageBox,
+                             QWidget, QAction, qApp)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
@@ -91,65 +91,66 @@ class Go(QMainWindow):
         undo = QPushButton("Undo")
         undo.clicked.connect(self.board.undo)
         self.toolbar.addWidget(undo)
-
         '''
         Charlie code added below
 
         '''
 
-        #button on tool bar to display instructions direct via QMsgBox
+        # button on tool bar to display instructions direct via QMsgBox
         btn = QPushButton("Instructions")
         self.toolbar.addWidget(btn)
-        btn.clicked.connect(self.Instructions)
+        btn.clicked.connect(self.showInstructions)
 
         # Menu
-        MenuBar = QMenuBar(self)
-        MenuBar.setNativeMenuBar(False)
-        UserMenu = MenuBar.addMenu("&User Options")
-        HelpMenu = MenuBar.addMenu("&Help!")
-        self.setMenuBar(MenuBar)
+        menuBar = QMenuBar(self)
+        menuBar.setNativeMenuBar(False)
+        userMenu = menuBar.addMenu("&Options")
+        helpMenu = menuBar.addMenu("&Help")
+        self.setMenuBar(menuBar)
 
+        newGame = QAction(QIcon("./app/icons/New.png"), " New Game", self)
+        newGame.setShortcut("Ctrl+N")
+        userMenu.addAction(newGame)
+        newGame.triggered.connect(self.board.resetGame)
 
-        NewGame = QAction(QIcon("./icons/New.png"), " New Game", self)
-        NewGame.setShortcut("Ctrl+N")
-        UserMenu.addAction(NewGame)
-        NewGame.triggered.connect(self.NewGame)
+        resetGame = QAction(QIcon("./app/icons/Reset.png"), " Reset Game",
+                            self)
+        resetGame.setShortcut("Ctrl+R")
+        userMenu.addAction(resetGame)
+        resetGame.triggered.connect(self.board.resetGame)
 
-        ResetGame = QAction(QIcon("./icons/Reset.png"), " Reset Game", self)
-        ResetGame.setShortcut("Ctrl+R")
-        UserMenu.addAction(ResetGame)
-        ResetGame.triggered.connect(self.ResetGame)
+        quitGame = QAction(QIcon("./app/icons/exit24.png"), " Quit Game", self)
+        quitGame.setShortcut("Ctrl+Q")
+        userMenu.addAction(quitGame)
+        quitGame.triggered.connect(qApp.quit)
 
-        QuitGame = QAction(QIcon("./icons/exit24.png"), " Quit Game", self)
-        QuitGame.setShortcut("Ctrl+Q")
-        UserMenu.addAction(QuitGame)
-        QuitGame.triggered.connect(qApp.quit)
+        helpAction = QAction(
+            QIcon("./app/icons/Info.png"), "Help Guide",
+            self)  # create a clear action with a png as an icon
+        helpAction.setShortcut(
+            "Ctrl+H")  # connect this clear action to a keyboard shortcut
+        helpMenu.addAction(helpAction)  # add this action to the file menu
+        helpAction.triggered.connect(self.showInstructions)
 
-        HelpAction = QAction(QIcon("./icons/Info.png"), "Help Guide", self) # create a clear action with a png as an icon
-        HelpAction.setShortcut("Ctrl+H")                                # connect this clear action to a keyboard shortcut
-        HelpMenu.addAction(HelpAction)                                  # add this action to the file menu
-        HelpAction.triggered.connect(self.Instructions)
-
-        #keep this line above methods or it breaks the countdown clock
+        # keep this line above methods or it breaks the countdown clock
         self.makeConnection()
 
-    # forces a reset to start a new game - wipes all pieces/scores
-    def NewGame(self):
-        self.board.resetGame()
-    # forces a reset to start a new game - wipes all pieces/scores
-    def ResetGame(self):
-        self.board.resetGame()
-    #forces a message box to open with instructions
-    def Instructions(self):
-
-        QMessageBox.about(self,"Paint Help Guid","The game has playing pieces called ‘stones’ where one player uses the black stones,and the other uses the black ones. The game kicks off with an empty board where participants take turns to place the stones on various vacant areas on the board. The black stones play first by being placed in the intersections of the lines, and once they have been placed on the board, they are not moved unless captured. Capture happens when a stone is surrounded by opponent’s stones in all the adjacent positions.Players start the game by staking their claims on parts of the board they want to occupy. At the end of the game, the players count the vacant intersections on their territory and add it to the number of stones captured.The player with the larger total becomes the winner.")
-
-
-        '''
-        END of Charlie code added below
-
-        '''
-
+    '''
+        Trigger instructions about dialog
+    '''
+    def showInstructions(self):
+        QMessageBox.about(
+            self,
+            "PyGo Help",
+            "\n\n".join([
+                "The game has playing pieces called ‘stones’ where one player uses the black stones, and the other uses the black ones.",  # noqa: E501
+                "The game kicks off with an empty board where participants take turns to place the stones on various vacant areas on the board.",  # noqa: E501
+                "The black stones play first by being placed in the intersections of the lines, and once they have been placed on the board, they are not moved unless captured.",  # noqa: E501
+                "Capture happens when a stone is surrounded by opponent’s stones in all the adjacent positions.",  # noqa: E501
+                "Players start the game by staking their claims on parts of the board they want to occupy.",  # noqa: E501
+                "At the end of the game, the players count the vacant intersections on their territory and add it to the number of stones captured.",  # noqa: E501
+                "The player with the larger total becomes the winner."  # noqa: E501
+            ]))
 
     def makeLCD(self):
         '''

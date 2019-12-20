@@ -30,7 +30,9 @@
 &#39;&#39;&#39;
 from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
                              QDialogButtonBox, QLabel, QToolBar, QPushButton,
-                             QHBoxLayout, QVBoxLayout, QWidget)
+                             QHBoxLayout, QVBoxLayout, QMenuBar, QMessageBox,
+                             QWidget, QAction, qApp)
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
 from .score_board import ScoreBoard
@@ -116,9 +118,66 @@ class Go(QMainWindow):
         undo = QPushButton(&#34;Undo&#34;)
         undo.clicked.connect(self.board.undo)
         self.toolbar.addWidget(undo)
+        &#39;&#39;&#39;
+        Charlie code added below
 
-        # Connect any signals from the board to helper methods
+        &#39;&#39;&#39;
+
+        # button on tool bar to display instructions direct via QMsgBox
+        btn = QPushButton(&#34;Instructions&#34;)
+        self.toolbar.addWidget(btn)
+        btn.clicked.connect(self.showInstructions)
+
+        # Menu
+        menuBar = QMenuBar(self)
+        menuBar.setNativeMenuBar(False)
+        userMenu = menuBar.addMenu(&#34;&amp;Options&#34;)
+        helpMenu = menuBar.addMenu(&#34;&amp;Help&#34;)
+        self.setMenuBar(menuBar)
+
+        newGame = QAction(QIcon(&#34;./app/icons/New.png&#34;), &#34; New Game&#34;, self)
+        newGame.setShortcut(&#34;Ctrl+N&#34;)
+        userMenu.addAction(newGame)
+        newGame.triggered.connect(self.board.resetGame)
+
+        resetGame = QAction(QIcon(&#34;./app/icons/Reset.png&#34;), &#34; Reset Game&#34;,
+                            self)
+        resetGame.setShortcut(&#34;Ctrl+R&#34;)
+        userMenu.addAction(resetGame)
+        resetGame.triggered.connect(self.board.resetGame)
+
+        quitGame = QAction(QIcon(&#34;./app/icons/exit24.png&#34;), &#34; Quit Game&#34;, self)
+        quitGame.setShortcut(&#34;Ctrl+Q&#34;)
+        userMenu.addAction(quitGame)
+        quitGame.triggered.connect(qApp.quit)
+
+        helpAction = QAction(
+            QIcon(&#34;./app/icons/Info.png&#34;), &#34;Help Guide&#34;,
+            self)  # create a clear action with a png as an icon
+        helpAction.setShortcut(
+            &#34;Ctrl+H&#34;)  # connect this clear action to a keyboard shortcut
+        helpMenu.addAction(helpAction)  # add this action to the file menu
+        helpAction.triggered.connect(self.showInstructions)
+
+        # keep this line above methods or it breaks the countdown clock
         self.makeConnection()
+
+    &#39;&#39;&#39;
+        Trigger instructions about dialog
+    &#39;&#39;&#39;
+    def showInstructions(self):
+        QMessageBox.about(
+            self,
+            &#34;PyGo Help&#34;,
+            &#34;\n\n&#34;.join([
+                &#34;The game has playing pieces called ‘stones’ where one player uses the black stones, and the other uses the black ones.&#34;,  # noqa: E501
+                &#34;The game kicks off with an empty board where participants take turns to place the stones on various vacant areas on the board.&#34;,  # noqa: E501
+                &#34;The black stones play first by being placed in the intersections of the lines, and once they have been placed on the board, they are not moved unless captured.&#34;,  # noqa: E501
+                &#34;Capture happens when a stone is surrounded by opponent’s stones in all the adjacent positions.&#34;,  # noqa: E501
+                &#34;Players start the game by staking their claims on parts of the board they want to occupy.&#34;,  # noqa: E501
+                &#34;At the end of the game, the players count the vacant intersections on their territory and add it to the number of stones captured.&#34;,  # noqa: E501
+                &#34;The player with the larger total becomes the winner.&#34;  # noqa: E501
+            ]))
 
     def makeLCD(self):
         &#39;&#39;&#39;
@@ -175,8 +234,8 @@ class Go(QMainWindow):
         &#39;&#39;&#39;
         self.board.skip()
 
-    @pyqtSlot()
-    def updateGameOver(self):
+    @pyqtSlot(object)
+    def updateGameOver(self, player):
         &#39;&#39;&#39;
             On GameOver, trigger a dialog
         &#39;&#39;&#39;
@@ -187,6 +246,9 @@ class Go(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(QLabel(&#34;Game Over&#34;))
 
+        # Display winner
+        layout.addWidget(
+            QLabel(f&#34;{player.getName()} wins with {player.getScore()} points&#34;))
         # Create a button holder for the dialog
         buttonBox = QDialogButtonBox(Qt.Vertical)
 
@@ -320,9 +382,66 @@ class Go(QMainWindow):
         undo = QPushButton(&#34;Undo&#34;)
         undo.clicked.connect(self.board.undo)
         self.toolbar.addWidget(undo)
+        &#39;&#39;&#39;
+        Charlie code added below
 
-        # Connect any signals from the board to helper methods
+        &#39;&#39;&#39;
+
+        # button on tool bar to display instructions direct via QMsgBox
+        btn = QPushButton(&#34;Instructions&#34;)
+        self.toolbar.addWidget(btn)
+        btn.clicked.connect(self.showInstructions)
+
+        # Menu
+        menuBar = QMenuBar(self)
+        menuBar.setNativeMenuBar(False)
+        userMenu = menuBar.addMenu(&#34;&amp;Options&#34;)
+        helpMenu = menuBar.addMenu(&#34;&amp;Help&#34;)
+        self.setMenuBar(menuBar)
+
+        newGame = QAction(QIcon(&#34;./app/icons/New.png&#34;), &#34; New Game&#34;, self)
+        newGame.setShortcut(&#34;Ctrl+N&#34;)
+        userMenu.addAction(newGame)
+        newGame.triggered.connect(self.board.resetGame)
+
+        resetGame = QAction(QIcon(&#34;./app/icons/Reset.png&#34;), &#34; Reset Game&#34;,
+                            self)
+        resetGame.setShortcut(&#34;Ctrl+R&#34;)
+        userMenu.addAction(resetGame)
+        resetGame.triggered.connect(self.board.resetGame)
+
+        quitGame = QAction(QIcon(&#34;./app/icons/exit24.png&#34;), &#34; Quit Game&#34;, self)
+        quitGame.setShortcut(&#34;Ctrl+Q&#34;)
+        userMenu.addAction(quitGame)
+        quitGame.triggered.connect(qApp.quit)
+
+        helpAction = QAction(
+            QIcon(&#34;./app/icons/Info.png&#34;), &#34;Help Guide&#34;,
+            self)  # create a clear action with a png as an icon
+        helpAction.setShortcut(
+            &#34;Ctrl+H&#34;)  # connect this clear action to a keyboard shortcut
+        helpMenu.addAction(helpAction)  # add this action to the file menu
+        helpAction.triggered.connect(self.showInstructions)
+
+        # keep this line above methods or it breaks the countdown clock
         self.makeConnection()
+
+    &#39;&#39;&#39;
+        Trigger instructions about dialog
+    &#39;&#39;&#39;
+    def showInstructions(self):
+        QMessageBox.about(
+            self,
+            &#34;PyGo Help&#34;,
+            &#34;\n\n&#34;.join([
+                &#34;The game has playing pieces called ‘stones’ where one player uses the black stones, and the other uses the black ones.&#34;,  # noqa: E501
+                &#34;The game kicks off with an empty board where participants take turns to place the stones on various vacant areas on the board.&#34;,  # noqa: E501
+                &#34;The black stones play first by being placed in the intersections of the lines, and once they have been placed on the board, they are not moved unless captured.&#34;,  # noqa: E501
+                &#34;Capture happens when a stone is surrounded by opponent’s stones in all the adjacent positions.&#34;,  # noqa: E501
+                &#34;Players start the game by staking their claims on parts of the board they want to occupy.&#34;,  # noqa: E501
+                &#34;At the end of the game, the players count the vacant intersections on their territory and add it to the number of stones captured.&#34;,  # noqa: E501
+                &#34;The player with the larger total becomes the winner.&#34;  # noqa: E501
+            ]))
 
     def makeLCD(self):
         &#39;&#39;&#39;
@@ -379,8 +498,8 @@ class Go(QMainWindow):
         &#39;&#39;&#39;
         self.board.skip()
 
-    @pyqtSlot()
-    def updateGameOver(self):
+    @pyqtSlot(object)
+    def updateGameOver(self, player):
         &#39;&#39;&#39;
             On GameOver, trigger a dialog
         &#39;&#39;&#39;
@@ -391,6 +510,9 @@ class Go(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(QLabel(&#34;Game Over&#34;))
 
+        # Display winner
+        layout.addWidget(
+            QLabel(f&#34;{player.getName()} wins with {player.getScore()} points&#34;))
         # Create a button holder for the dialog
         buttonBox = QDialogButtonBox(Qt.Vertical)
 
@@ -566,8 +688,48 @@ class Go(QMainWindow):
     undo = QPushButton(&#34;Undo&#34;)
     undo.clicked.connect(self.board.undo)
     self.toolbar.addWidget(undo)
+    &#39;&#39;&#39;
+    Charlie code added below
 
-    # Connect any signals from the board to helper methods
+    &#39;&#39;&#39;
+
+    # button on tool bar to display instructions direct via QMsgBox
+    btn = QPushButton(&#34;Instructions&#34;)
+    self.toolbar.addWidget(btn)
+    btn.clicked.connect(self.showInstructions)
+
+    # Menu
+    menuBar = QMenuBar(self)
+    menuBar.setNativeMenuBar(False)
+    userMenu = menuBar.addMenu(&#34;&amp;Options&#34;)
+    helpMenu = menuBar.addMenu(&#34;&amp;Help&#34;)
+    self.setMenuBar(menuBar)
+
+    newGame = QAction(QIcon(&#34;./app/icons/New.png&#34;), &#34; New Game&#34;, self)
+    newGame.setShortcut(&#34;Ctrl+N&#34;)
+    userMenu.addAction(newGame)
+    newGame.triggered.connect(self.board.resetGame)
+
+    resetGame = QAction(QIcon(&#34;./app/icons/Reset.png&#34;), &#34; Reset Game&#34;,
+                        self)
+    resetGame.setShortcut(&#34;Ctrl+R&#34;)
+    userMenu.addAction(resetGame)
+    resetGame.triggered.connect(self.board.resetGame)
+
+    quitGame = QAction(QIcon(&#34;./app/icons/exit24.png&#34;), &#34; Quit Game&#34;, self)
+    quitGame.setShortcut(&#34;Ctrl+Q&#34;)
+    userMenu.addAction(quitGame)
+    quitGame.triggered.connect(qApp.quit)
+
+    helpAction = QAction(
+        QIcon(&#34;./app/icons/Info.png&#34;), &#34;Help Guide&#34;,
+        self)  # create a clear action with a png as an icon
+    helpAction.setShortcut(
+        &#34;Ctrl+H&#34;)  # connect this clear action to a keyboard shortcut
+    helpMenu.addAction(helpAction)  # add this action to the file menu
+    helpAction.triggered.connect(self.showInstructions)
+
+    # keep this line above methods or it breaks the countdown clock
     self.makeConnection()</code></pre>
 </details>
 </dd>
@@ -635,6 +797,30 @@ class Go(QMainWindow):
     self.gameOverDialog.close()</code></pre>
 </details>
 </dd>
+<dt id="app.go.Go.showInstructions"><code class="name flex">
+<span>def <span class="ident">showInstructions</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def showInstructions(self):
+    QMessageBox.about(
+        self,
+        &#34;PyGo Help&#34;,
+        &#34;\n\n&#34;.join([
+            &#34;The game has playing pieces called ‘stones’ where one player uses the black stones, and the other uses the black ones.&#34;,  # noqa: E501
+            &#34;The game kicks off with an empty board where participants take turns to place the stones on various vacant areas on the board.&#34;,  # noqa: E501
+            &#34;The black stones play first by being placed in the intersections of the lines, and once they have been placed on the board, they are not moved unless captured.&#34;,  # noqa: E501
+            &#34;Capture happens when a stone is surrounded by opponent’s stones in all the adjacent positions.&#34;,  # noqa: E501
+            &#34;Players start the game by staking their claims on parts of the board they want to occupy.&#34;,  # noqa: E501
+            &#34;At the end of the game, the players count the vacant intersections on their territory and add it to the number of stones captured.&#34;,  # noqa: E501
+            &#34;The player with the larger total becomes the winner.&#34;  # noqa: E501
+        ]))</code></pre>
+</details>
+</dd>
 <dt id="app.go.Go.trySkip"><code class="name flex">
 <span>def <span class="ident">trySkip</span></span>(<span>self)</span>
 </code></dt>
@@ -652,7 +838,7 @@ class Go(QMainWindow):
 </details>
 </dd>
 <dt id="app.go.Go.updateGameOver"><code class="name flex">
-<span>def <span class="ident">updateGameOver</span></span>(<span>self)</span>
+<span>def <span class="ident">updateGameOver</span></span>(<span>self, player)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>On GameOver, trigger a dialog</p></section>
@@ -660,8 +846,8 @@ class Go(QMainWindow):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@pyqtSlot()
-def updateGameOver(self):
+<pre><code class="python">@pyqtSlot(object)
+def updateGameOver(self, player):
     &#39;&#39;&#39;
         On GameOver, trigger a dialog
     &#39;&#39;&#39;
@@ -672,6 +858,9 @@ def updateGameOver(self):
     layout = QVBoxLayout()
     layout.addWidget(QLabel(&#34;Game Over&#34;))
 
+    # Display winner
+    layout.addWidget(
+        QLabel(f&#34;{player.getName()} wins with {player.getScore()} points&#34;))
     # Create a button holder for the dialog
     buttonBox = QDialogButtonBox(Qt.Vertical)
 
@@ -771,6 +960,7 @@ def updatePlayerTimer(self, _):
 <li><code><a title="app.go.Go.makeConnection" href="#app.go.Go.makeConnection">makeConnection</a></code></li>
 <li><code><a title="app.go.Go.makeLCD" href="#app.go.Go.makeLCD">makeLCD</a></code></li>
 <li><code><a title="app.go.Go.restartGame" href="#app.go.Go.restartGame">restartGame</a></code></li>
+<li><code><a title="app.go.Go.showInstructions" href="#app.go.Go.showInstructions">showInstructions</a></code></li>
 <li><code><a title="app.go.Go.trySkip" href="#app.go.Go.trySkip">trySkip</a></code></li>
 <li><code><a title="app.go.Go.updateGameOver" href="#app.go.Go.updateGameOver">updateGameOver</a></code></li>
 <li><code><a title="app.go.Go.updatePlayer" href="#app.go.Go.updatePlayer">updatePlayer</a></code></li>
