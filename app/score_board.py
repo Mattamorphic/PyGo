@@ -48,7 +48,6 @@ class ScoreBoard(QDockWidget):
         for id, player in self.players.items():
             self.mainLayout.addWidget(player["scoreLabel"])
         self.mainLayout.addWidget(self.logicMessage)
-
         self.setWidget(self.mainWidget)
         self.show()
 

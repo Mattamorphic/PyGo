@@ -3,7 +3,7 @@
 '''
 from PyQt5.QtWidgets import (QMainWindow, QDesktopWidget, QDialog, QLCDNumber,
                              QDialogButtonBox, QLabel, QToolBar, QPushButton,
-                             QHBoxLayout, QVBoxLayout, QWidget)
+                             QHBoxLayout, QVBoxLayout, QMenuBar, QWidget)
 from PyQt5.QtCore import Qt, pyqtSlot
 from .board import Board
 from .score_board import ScoreBoard
@@ -92,9 +92,16 @@ class Go(QMainWindow):
 
 
         # Menu
+        menuBar = QMenuBar(self)
+        menuBar.setNativeMenuBar(False)
+        gameMenu = menuBar.addMenu("&Game")
+        helpMenu = menuBar.addMenu("&Help")
+        self.setMenuBar(menuBar)
 
         ## TODO: Add menu with help option, displays rules of GO in dialog
+        ## helpMenu.addAction(...)
         ## TODO: Add menu options to reset game
+        ## gameMenu.addAction(...)
 
         # Connect any signals from the board to helper methods
         self.makeConnection()
